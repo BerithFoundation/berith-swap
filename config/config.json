@@ -1,0 +1,23 @@
+{
+  "chains": [
+    {
+      "name": "berith",
+      "endpoint": "http://testnet.berith.co:8545",
+      "from": "0x2345BF77D1De9eacf66FE81a09a86CfAb212a542",
+      "gasLimit": "9000000",
+      "maxGasPrice": "30000000000",
+      "blockConfirmations": "10"
+    },
+    {
+      "name": "klaytn",
+      "endpoint": "https://api.baobab.klaytn.net:8651",
+      "from": "0x48179c14aeDf2bfaCf7bF6328A2eDACd6d3DA426",
+      "tokenContractAddress": "",
+      "gasLimit": "9000000",
+      "maxGasPrice": "10000000000",
+      "blockConfirmations": "10"
+    }
+  ],
+  "keystorePath": "",
+  "blockStorePath": ""
+}
