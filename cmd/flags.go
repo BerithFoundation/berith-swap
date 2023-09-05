@@ -16,10 +16,10 @@ var (
 		Usage: "JSON configuration file",
 	}
 
-	VerbosityFlag = &cli.StringFlag{
+	VerbosityFlag = &cli.IntFlag{
 		Name:  "verbosity",
-		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: zerolog.LevelInfoValue,
+		Usage: "Supports levels trace (-1) to disable (7)",
+		Value: int(zerolog.InfoLevel),
 	}
 
 	KeystorePathFlag = &cli.StringFlag{
@@ -43,13 +43,14 @@ var (
 		Name:  "latest",
 		Usage: "Overrides blockstore and start block, starts from latest block",
 	}
+	PasswordPathFlag = &cli.StringFlag{
+		Name:  "password",
+		Usage: "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
+		Value: "./keys/password",
+	}
 )
 
 var (
-	PasswordFlag = &cli.StringFlag{
-		Name:  "password",
-		Usage: "Password used to encrypt the keystore. Used with --generate, --import, or --unlock",
-	}
 	Sr25519Flag = &cli.BoolFlag{
 		Name:  "sr25519",
 		Usage: "Specify account/key type as sr25519.",

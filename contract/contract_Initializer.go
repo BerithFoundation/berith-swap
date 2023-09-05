@@ -11,10 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	ERC20Address = "0x4C6c0101B74f1789409EAB5E1D542057512472bD"
-)
-
 var (
 	gasPrice = big.NewInt(25000000000)
 )
@@ -46,7 +42,7 @@ func InitializeTransactor(
 	return trans, nil
 }
 
-func InitErc20Contract(privKey string) (*ERC20Contract, error) {
+func InitErc20Contract(privKey, erc20Addr string) (*ERC20Contract, error) {
 
 	sender, err := signer.NewKeypairFromPrivateKey(privKey)
 	if err != nil {
@@ -60,5 +56,5 @@ func InitErc20Contract(privKey string) (*ERC20Contract, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewERC20Contract(c, common.HexToAddress(ERC20Address), t), nil
+	return NewERC20Contract(c, common.HexToAddress(erc20Addr), t), nil
 }

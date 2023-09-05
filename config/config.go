@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 )
@@ -15,19 +17,20 @@ type Config struct {
 	Chains         []RawChainConfig `json:"chains"`
 	KeystorePath   string           `json:"keystorePath,omitempty"`
 	BlockStorePath string           `json:"blockStorePath"`
-	FreshStart     bool             `json:"freshStart"`
+	LatestBlock    bool             `json:"latestBlock"`
+	Verbosity      zerolog.Level
 }
 
 type RawChainConfig struct {
-	Name                 string `json:"name"`
-	Type                 string `json:"type"`
-	Endpoint             string `json:"endpoint"`
-	From                 string `json:"from"`
-	Password             string `json:"password"`
-	TokenContractAddress string `json:"tokenContractAddress"`
-	GasLimit             string `json:"gasLimit"`
-	MaxGasPrice          string `json:"maxGasPrice"`
-	BlockConfirmations   string `json:"blockConfirmations"`
+	Name               string `json:"name"`
+	Type               string `json:"type"`
+	Endpoint           string `json:"endpoint"`
+	Exchanger          string `json:"exchanger"`
+	Erc20Address       string `json:"erc20Address"`
+	GasLimit           string `json:"gasLimit"`
+	MaxGasPrice        string `json:"maxGasPrice"`
+	BlockConfirmations string `json:"blockConfirmations"`
+	Password           string
 }
 
 const (
@@ -55,9 +58,27 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 		if store := ctx.String(cmd.BlockstorePathFlag.Name); store != "" {
 			C.BlockStorePath = store
 		}
-		if fresh := ctx.Bool(cmd.FreshStartFlag.Name); fresh {
-			C.FreshStart = fresh
+		if fresh := ctx.Bool(cmd.LatestBlockFlag.Name); fresh {
+			C.LatestBlock = fresh
 		}
+		if verbosity := ctx.Int64(cmd.VerbosityFlag.Name); zerolog.TraceLevel <= zerolog.Level(verbosity) && zerolog.Level(verbosity) <= zerolog.Disabled {
+			C.Verbosity = zerolog.Level(verbosity)
+		}
+		if pwPath := ctx.String(cmd.PasswordPathFlag.Name); pwPath != "" {
+			abPath, err := filepath.Abs(pwPath)
+			if err != nil {
+				log.Error().Err(err).Msg("cannot get absolute path of password file")
+			}
+			text, err := os.ReadFile(abPath)
+			if err != nil {
+				log.Error().Err(err).Msg("cannot read password file")
+			}
+			lines := strings.Split(string(text), "\n")
+			for i, l := range lines {
+				C.Chains[i].Password = l
+			}
+		}
+
 		return C, nil
 	}
 	return C, nil

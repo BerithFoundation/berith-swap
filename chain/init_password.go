@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func SendToPasswordKeypair(addr, path, password string) (*keypair.Keypair, error) {
+func GenerateKeyPair(addr, path, password string) (*keypair.Keypair, error) {
 	if password == "" {
 		return nil, fmt.Errorf("password is empty")
 	}
