@@ -1,7 +1,7 @@
 package contract
 
 import (
-	"berith-swap/transaction"
+	transaction "berith-swap/bridge/transaction"
 	"context"
 	"fmt"
 

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-const PathPostfix = "berith-swap/blockstore"
+const PathPostfix = "berith-swap/bridge/blockstore"
 
 type Blockstorer interface {
 	StoreBlock(*big.Int) error

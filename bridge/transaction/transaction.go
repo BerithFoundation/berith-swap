@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"berith-swap/transaction/signer"
+	keypair "berith-swap/bridge/keypair"
 	"context"
 	"math/big"
 
@@ -12,14 +12,14 @@ import (
 
 type CommonTransaction interface {
 	Hash() common.Hash
-	RawWithSignature(signer signer.Signer, domainID *big.Int) ([]byte, error)
+	RawWithSignature(signer keypair.Signer, domainID *big.Int) ([]byte, error)
 }
 
 type TX struct {
 	tx *types.Transaction
 }
 
-func (a *TX) RawWithSignature(signer signer.Signer, domainID *big.Int) ([]byte, error) {
+func (a *TX) RawWithSignature(signer keypair.Signer, domainID *big.Int) ([]byte, error) {
 	opts, err := newTransactorWithChainID(signer, domainID)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (a *TX) Hash() common.Hash {
 	return a.tx.Hash()
 }
 
-func newTransactorWithChainID(s signer.Signer, chainID *big.Int) (*bind.TransactOpts, error) {
+func newTransactorWithChainID(s keypair.Signer, chainID *big.Int) (*bind.TransactOpts, error) {
 	keyAddr := s.CommonAddress()
 	if chainID == nil {
 		return nil, bind.ErrNoChainID

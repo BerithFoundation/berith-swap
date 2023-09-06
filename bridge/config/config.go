@@ -1,7 +1,7 @@
 package config
 
 import (
-	"berith-swap/cmd"
+	cmd "berith-swap/bridge/cmd"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,7 +14,7 @@ import (
 )
 
 type Config struct {
-	Chains         []RawChainConfig `json:"chains"`
+	ChainConfig    []RawChainConfig `json:"chains"`
 	KeystorePath   string           `json:"keystorePath,omitempty"`
 	BlockStorePath string           `json:"blockStorePath"`
 	LatestBlock    bool             `json:"latestBlock"`
@@ -22,6 +22,7 @@ type Config struct {
 }
 
 type RawChainConfig struct {
+	Idx                int8   `json:"idx"`
 	Name               string `json:"name"`
 	Type               string `json:"type"`
 	Endpoint           string `json:"endpoint"`
@@ -75,7 +76,7 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 			}
 			lines := strings.Split(string(text), "\n")
 			for i, l := range lines {
-				C.Chains[i].Password = l
+				C.ChainConfig[i].Password = l
 			}
 		}
 

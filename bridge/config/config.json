@@ -1,6 +1,7 @@
 {
   "chains": [
     {
+      "idx": 1,
       "name": "berith",
       "endpoint": "http://testnet.berith.co:8545",
       "exchanger": "0x2345BF77D1De9eacf66FE81a09a86CfAb212a542",
@@ -9,6 +10,7 @@
       "blockConfirmations": "10"
     },
     {
+      "idx": 2,
       "name": "klaytn",
       "endpoint": "https://api.baobab.klaytn.net:8651",
       "exchanger": "0x48179c14aeDf2bfaCf7bF6328A2eDACd6d3DA426",

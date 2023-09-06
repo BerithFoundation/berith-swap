@@ -46,7 +46,7 @@ var (
 	PasswordPathFlag = &cli.StringFlag{
 		Name:  "password",
 		Usage: "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
-		Value: "./keys/password",
+		Value: "./password",
 	}
 )
 

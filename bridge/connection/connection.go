@@ -1,7 +1,8 @@
-package contract
+package connection
 
 import (
-	"berith-swap/transaction"
+	"berith-swap/bridge/keypair"
+	"berith-swap/bridge/transaction"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,25 +18,25 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-)
-
-const (
-	TestRpcURL = "https://api.baobab.klaytn.net:8651"
 )
 
 type EvmClient struct {
 	*ethclient.Client
 	rpcClient *rpc.Client
 	chainId   *big.Int
-	signer    Signer
+	signer    keypair.Signer
 	nonce     *big.Int
 	nonceLock sync.Mutex
+	logger    *zerolog.Logger
 }
 
-func NewEvmClient(s Signer) (*EvmClient, error) {
+func NewEvmClient(s keypair.Signer, endPoint string, logger *zerolog.Logger) (*EvmClient, error) {
+	logger.Info().Msgf("Connecting to ethereum chain... url:%s", endPoint)
+
 	ctx := context.Background()
-	rpcClient, err := rpc.DialContext(ctx, TestRpcURL)
+	rpcClient, err := rpc.DialContext(ctx, endPoint)
 	if err != nil {
 		log.Err(err).Msg("cannot dial to rpc node")
 		return nil, err
@@ -53,6 +54,7 @@ func NewEvmClient(s Signer) (*EvmClient, error) {
 		rpcClient: rpcClient,
 		chainId:   (*big.Int)(chainId),
 		signer:    s,
+		logger:    logger,
 	}
 
 	return &client, nil
@@ -159,8 +161,8 @@ func (c *EvmClient) GetTransactionByHash(h common.Hash) (tx *types.Transaction, 
 	return c.Client.TransactionByHash(context.Background(), h)
 }
 
-func (c *EvmClient) FetchEventLogs(ctx context.Context, contractAddress common.Address, event string, startBlock *big.Int, endBlock *big.Int) ([]types.Log, error) {
-	logs, err := c.FilterLogs(ctx, buildQuery(contractAddress, event, startBlock, endBlock))
+func (c *EvmClient) FetchEventLogs(ctx context.Context, contractAddress common.Address, methodSig string, startBlock *big.Int, endBlock *big.Int) ([]types.Log, error) {
+	logs, err := c.FilterLogs(ctx, buildQuery(contractAddress, methodSig, startBlock, endBlock))
 	if err != nil {
 		return []types.Log{}, err
 	}
@@ -244,6 +246,19 @@ func (c *EvmClient) BaseFee() (*big.Int, error) {
 
 func (c *EvmClient) ChainId() *big.Int {
 	return c.chainId
+}
+
+// EnsureHasBytecode asserts if contract code exists at the specified address
+func (c *EvmClient) EnsureHasBytecode(addr common.Address) error {
+	code, err := c.CodeAt(context.Background(), addr, nil)
+	if err != nil {
+		return err
+	}
+
+	if len(code) == 0 {
+		return fmt.Errorf("no bytecode found at %s", addr.Hex())
+	}
+	return nil
 }
 
 func buildQuery(contract common.Address, sig string, startBlock *big.Int, endBlock *big.Int) ethereum.FilterQuery {
