@@ -7,10 +7,14 @@ import (
 
 type EventSig string
 
+func (e *EventSig) String() string {
+	return string(*e)
+}
+
 func (es EventSig) GetTopic() common.Hash {
 	return crypto.Keccak256Hash([]byte(es))
 }
 
-const (
-	Deposit EventSig = "Deposit(address)"
+var (
+	Deposit EventSig = "Deposit(uint64,address,address,uint256)"
 )

@@ -32,7 +32,7 @@ type EvmClient struct {
 	logger    *zerolog.Logger
 }
 
-func NewEvmClient(s keypair.Signer, endPoint string, logger *zerolog.Logger) (*EvmClient, error) {
+func NewEvmClient(s *keypair.Keypair, endPoint string, logger *zerolog.Logger) (*EvmClient, error) {
 	logger.Info().Msgf("Connecting to ethereum chain... url:%s", endPoint)
 
 	ctx := context.Background()

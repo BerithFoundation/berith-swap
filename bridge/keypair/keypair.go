@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -15,8 +16,6 @@ type Signer interface {
 	Sign(digestHash []byte) ([]byte, error)
 }
 
-const PrivateKeyLength = 32
-
 type Keypair struct {
 	public  *ecdsa.PublicKey
 	private *ecdsa.PrivateKey
@@ -26,15 +25,13 @@ func GenerateKeyPair(addr, path, password string) (*Keypair, error) {
 	if password == "" {
 		return nil, fmt.Errorf("password is empty")
 	}
-	keys, err := filepath.Glob(fmt.Sprintf("*%s", addr[2:]))
-	if err != nil {
+	pattern := fmt.Sprintf("%s/*%s", path, strings.ToLower(addr[2:]))
+	keys, err := filepath.Glob(pattern)
+	if err != nil || len(keys) == 0 {
 		return nil, fmt.Errorf("no key files matching given keyword:%s", addr)
 	}
-	path = fmt.Sprintf("%s/%s.key", path, keys[0])
 
-	var pswd []byte = []byte(password)
-
-	kp, err := ReadFromFileAndDecrypt(path, pswd)
+	kp, err := ReadFromFileAndDecrypt(keys[0], password)
 	if err != nil {
 		return nil, err
 	}
