@@ -17,7 +17,7 @@ type Config struct {
 	ChainConfig    []RawChainConfig `json:"chains"`
 	KeystorePath   string           `json:"keystorePath,omitempty"`
 	BlockStorePath string           `json:"blockStorePath"`
-	LatestBlock    bool             `json:"latestBlock"`
+	IsLoaded       bool
 	Verbosity      zerolog.Level
 }
 
@@ -26,7 +26,8 @@ type RawChainConfig struct {
 	Name               string `json:"name"`
 	Type               string `json:"type"`
 	Endpoint           string `json:"endpoint"`
-	Exchanger          string `json:"exchanger"`
+	Owner              string `json:"owner"`
+	BridgeAddress      string `json:"bridgeAddress"`
 	Erc20Address       string `json:"erc20Address"`
 	GasLimit           string `json:"gasLimit"`
 	MaxGasPrice        string `json:"maxGasPrice"`
@@ -38,51 +39,48 @@ const (
 	DefaultConfigPath = "./config.json"
 )
 
-var (
-	C *Config
-)
-
 func GetConfig(ctx *cli.Context) (*Config, error) {
-	if C != nil {
-		path := DefaultConfigPath
-		if file := ctx.String(cmd.ConfigFileFlag.Name); file != "" {
-			path = file
-		}
-		err := loadConfig(path, C)
-		if err != nil {
-			log.Warn().Err(err).Msg("err loading json file")
-			return C, err
-		}
-		if ksPath := ctx.String(cmd.KeystorePathFlag.Name); ksPath != "" {
-			C.KeystorePath = ksPath
-		}
-		if store := ctx.String(cmd.BlockstorePathFlag.Name); store != "" {
-			C.BlockStorePath = store
-		}
-		if fresh := ctx.Bool(cmd.LatestBlockFlag.Name); fresh {
-			C.LatestBlock = fresh
-		}
-		if verbosity := ctx.Int64(cmd.VerbosityFlag.Name); zerolog.TraceLevel <= zerolog.Level(verbosity) && zerolog.Level(verbosity) <= zerolog.Disabled {
-			C.Verbosity = zerolog.Level(verbosity)
-		}
-		if pwPath := ctx.String(cmd.PasswordPathFlag.Name); pwPath != "" {
-			abPath, err := filepath.Abs(pwPath)
-			if err != nil {
-				log.Error().Err(err).Msg("cannot get absolute path of password file")
-			}
-			text, err := os.ReadFile(abPath)
-			if err != nil {
-				log.Error().Err(err).Msg("cannot read password file")
-			}
-			lines := strings.Split(string(text), "\n")
-			for i, l := range lines {
-				C.ChainConfig[i].Password = l
-			}
-		}
+	cfg := new(Config)
 
-		return C, nil
+	path := DefaultConfigPath
+	if file := ctx.String(cmd.ConfigFileFlag.Name); file != "" {
+		path = file
 	}
-	return C, nil
+	err := loadConfig(path, cfg)
+	if err != nil {
+		log.Warn().Err(err).Msg("err loading json file")
+		return nil, err
+	}
+	if ksPath := ctx.String(cmd.KeystorePathFlag.Name); ksPath != "" {
+		cfg.KeystorePath = ksPath
+	}
+	if store := ctx.String(cmd.BlockstorePathFlag.Name); store != "" {
+		cfg.BlockStorePath = store
+	}
+	if isLoaded := ctx.Bool(cmd.IsLoaded.Name); isLoaded {
+		cfg.IsLoaded = isLoaded
+	}
+	if verbosity := ctx.Int64(cmd.VerbosityFlag.Name); zerolog.TraceLevel <= zerolog.Level(verbosity) && zerolog.Level(verbosity) <= zerolog.Disabled {
+		cfg.Verbosity = zerolog.Level(verbosity)
+	}
+	if pwPath := ctx.String(cmd.PasswordPathFlag.Name); pwPath != "" {
+		abPath, err := filepath.Abs(pwPath)
+		if err != nil {
+			log.Error().Err(err).Msg("cannot get absolute path of password file")
+			return nil, err
+		}
+		text, err := os.ReadFile(abPath)
+		if err != nil {
+			log.Error().Err(err).Msgf("cannot read password file. path:%s", abPath)
+			return nil, err
+		}
+		lines := strings.Split(string(text), "\n")
+		for i, l := range lines {
+			cfg.ChainConfig[i].Password = l
+		}
+	}
+
+	return cfg, nil
 }
 
 func loadConfig(file string, config *Config) error {

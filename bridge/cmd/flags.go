@@ -31,56 +31,18 @@ var (
 	BlockstorePathFlag = &cli.StringFlag{
 		Name:  "blockstore",
 		Usage: "Specify path for blockstore",
-		Value: "",
+		Value: "./blockstore",
 	}
 
-	FreshStartFlag = &cli.BoolFlag{
-		Name:  "fresh",
+	IsLoaded = &cli.BoolFlag{
+		Name:  "isloaded",
 		Usage: "Disables loading from blockstore at start. Opts will still be used if specified.",
+		Value: true,
 	}
 
-	LatestBlockFlag = &cli.BoolFlag{
-		Name:  "latest",
-		Usage: "Overrides blockstore and start block, starts from latest block",
-	}
 	PasswordPathFlag = &cli.StringFlag{
 		Name:  "password",
 		Usage: "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
 		Value: "./password",
-	}
-)
-
-var (
-	Sr25519Flag = &cli.BoolFlag{
-		Name:  "sr25519",
-		Usage: "Specify account/key type as sr25519.",
-	}
-	Secp256k1Flag = &cli.BoolFlag{
-		Name:  "secp256k1",
-		Usage: "Specify account/key type as secp256k1.",
-	}
-)
-
-var (
-	EthereumImportFlag = &cli.BoolFlag{
-		Name:  "ethereum",
-		Usage: "Import an existing ethereum keystore, such as from geth.",
-	}
-	PrivateKeyFlag = &cli.StringFlag{
-		Name:  "privateKey",
-		Usage: "Import a hex representation of a private key into a keystore.",
-	}
-	SubkeyNetworkFlag = &cli.StringFlag{
-		Name:        "network",
-		Usage:       "Specify the network to use for the address encoding (substrate/polkadot/centrifuge)",
-		DefaultText: "substrate",
-	}
-)
-
-// Test Setting Flags
-var (
-	TestKeyFlag = &cli.StringFlag{
-		Name:  "testkey",
-		Usage: "Applies a predetermined test keystore to the chains.",
 	}
 )
