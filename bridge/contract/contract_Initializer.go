@@ -38,3 +38,12 @@ func InitErc20Contract(c *connection.EvmClient, erc20Addr string, logger *zerolo
 	}
 	return NewERC20Contract(c, common.HexToAddress(erc20Addr), t, logger), nil
 }
+
+func IniBridgeContract(c *connection.EvmClient, bridgeAddr string, logger *zerolog.Logger) (*BridgeContract, error) {
+
+	t, err := InitializeTransactor(gasPrice, transaction.NewTransaction, c)
+	if err != nil {
+		return nil, err
+	}
+	return NewBridgeContract(c, common.HexToAddress(bridgeAddr), t, logger), nil
+}
