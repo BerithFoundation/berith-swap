@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -100,7 +99,7 @@ func (s *SenderChain) start(ch chan error) {
 
 func (s *SenderChain) pollBlocks() error {
 	var currentBlock = s.startBlock
-	log.Info().Msgf("Polling Blocks.. current block:%d", currentBlock.Int64())
+	s.c.Logger.Info().Msgf("Polling Blocks.. current block:%d", currentBlock.Int64())
 
 	var retry = BlockRetryLimit
 	for {
@@ -114,14 +113,14 @@ func (s *SenderChain) pollBlocks() error {
 
 		latestBlock, err := s.c.EvmClient.LatestBlock()
 		if err != nil {
-			log.Error().Any("block", currentBlock).Err(err).Msg("Unable to get latest block")
+			s.c.Logger.Error().Any("block", currentBlock).Err(err).Msg("Unable to get latest block")
 			retry--
 			time.Sleep(BlockRetryInterval)
 			continue
 		}
 
 		if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(s.blockConfirmations) == -1 {
-			log.Debug().Any("current", currentBlock).Any("latest", latestBlock).Msg("Block not ready, will retry")
+			s.c.Logger.Debug().Any("current", currentBlock).Any("latest", latestBlock).Msg("Block not ready, will retry")
 			time.Sleep(BlockRetryInterval)
 			continue
 		}
@@ -152,7 +151,7 @@ func (s *SenderChain) pollBlocks() error {
 
 // getDepositEventsForBlock looks for the deposit event in the latest block
 func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.DepositMessage, error) {
-	s.c.Logger.Debug().Any("block", latestBlock).Msg("Querying block for deposit events")
+	s.c.Logger.Debug().Any("block", latestBlock.String()).Msg("Querying block for deposit events")
 	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.bridgeContract.Contract.ContractAddress(), message.Deposit, latestBlock, latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Filter Logs: %w", err)

@@ -17,7 +17,7 @@ func NewLogger(v zerolog.Level, name string) zerolog.Logger {
 			}
 			return strings.ToUpper(fmt.Sprintf("[ %s ] |%-6s|", name, i))
 		},
-		TimeFormat: "06-01-02 15:04:05"}
+		TimeFormat: "06.01.02 15:04:05"}
 
-	return zerolog.New(out).Level(v)
+	return zerolog.New(out).With().Timestamp().Logger().Level(v)
 }
