@@ -23,8 +23,8 @@ func NewERC20Contract(
 	transactor transaction.Transactor,
 	logger *zerolog.Logger,
 ) *ERC20Contract {
-	a, _ := abi.JSON(strings.NewReader(consts.ERC20ABI))
-	b := common.FromHex(consts.ERC20Bin)
+	a, _ := abi.JSON(strings.NewReader(consts.BersTokenABI))
+	b := common.FromHex(consts.BersTokenBin)
 	return &ERC20Contract{
 		Contract: NewContract(erc20ContractAddress, a, b, client, transactor),
 		Logger:   logger,

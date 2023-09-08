@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,17 +46,19 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 		blockConfirmations = DefaultBlockConfirmations
 	}
 
-	startBlock, err := bs.TryLoadLatestBlock()
+	startBlock, err := chain.EvmClient.LatestBlock()
 	if err != nil {
-		chain.Logger.Panic().Err(err).Msgf("cannot load latest block from block store.")
+		chain.Logger.Error().Err(err).Msgf("cannot get latest block through evmclient.")
+		return nil
 	}
-	if !cfg.IsLoaded {
-		curr, err := chain.EvmClient.LatestBlock()
+	chain.Logger.Info().Msgf("Latest block : %d", startBlock.Uint64())
+
+	if cfg.IsLoaded {
+		startBlock, err = bs.TryLoadLatestBlock()
 		if err != nil {
-			chain.Logger.Error().Err(err).Msgf("cannot get latest block through evmclient.")
-			return nil
+			chain.Logger.Panic().Err(err).Msgf("cannot load latest block from block store.")
 		}
-		startBlock = curr
+		chain.Logger.Info().Msgf("loaded latest block number form blockstore. path:%s, number:%d", bs.FullPath(), startBlock.Uint64())
 	}
 
 	sc := SenderChain{
@@ -105,9 +106,10 @@ func (s *SenderChain) pollBlocks() error {
 	for {
 		// No more retries, goto next block
 		if retry == 0 {
-			log.Error().Msg("Polling failed, retries exceeded")
+			err := fmt.Errorf("sender chain failed to poll block, retries exceeded")
+			s.c.Logger.Error().Err(err).Msg("")
 			s.c.EvmClient.Close()
-			return nil
+			return err
 		}
 
 		latestBlock, err := s.c.EvmClient.LatestBlock()
@@ -119,16 +121,21 @@ func (s *SenderChain) pollBlocks() error {
 		}
 
 		if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(s.blockConfirmations) == -1 {
-			log.Debug().Any("target", currentBlock).Any("latest", latestBlock).Msg("Block not ready, will retry")
+			log.Debug().Any("current", currentBlock).Any("latest", latestBlock).Msg("Block not ready, will retry")
 			time.Sleep(BlockRetryInterval)
 			continue
 		}
 
-		err = s.getDepositEventsForBlock(currentBlock)
+		msgs, err := s.getDepositEventsForBlock(currentBlock)
 		if err != nil {
 			s.c.Logger.Error().Err(err).Any("block", currentBlock).Msg("Failed to get events for block")
 			retry--
 			continue
+		}
+
+		s.SendMsgs(msgs)
+		if len(msgs) > 0 {
+			s.c.Logger.Info().Msgf("message sended compeletely, msgs:%d", len(msgs))
 		}
 
 		// Write to block store. Not a critical operation, no need to retry
@@ -144,29 +151,37 @@ func (s *SenderChain) pollBlocks() error {
 }
 
 // getDepositEventsForBlock looks for the deposit event in the latest block
-func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) error {
+func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.DepositMessage, error) {
 	s.c.Logger.Debug().Any("block", latestBlock).Msg("Querying block for deposit events")
-	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.bridgeContract.Contract.ContractAddress(), message.Deposit.String(), latestBlock, latestBlock)
+	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.bridgeContract.Contract.ContractAddress(), message.Deposit, latestBlock, latestBlock)
 	if err != nil {
-		return fmt.Errorf("unable to Filter Logs: %w", err)
+		return nil, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
+	msgs := []message.DepositMessage{}
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		tx, pending, err := s.c.EvmClient.TransactionByHash(context.Background(), log.TxHash)
 		if err != nil {
-			return fmt.Errorf("error cannot get transaction by hash. hash:%s, err:%w", log.TxHash, err)
+			return nil, fmt.Errorf("error cannot get transaction by hash. hash:%s, err:%w", log.TxHash, err)
 		}
 		if !pending {
-			signer := types.LatestSignerForChainID(tx.ChainId())
-			sender, err := types.Sender(signer, tx)
-			if err != nil {
-				return fmt.Errorf("error cannot get sender from transaction. err:%w", err)
-			}
-			msg := message.NewDepositMessage(sender, tx.Value())
-			s.msgChan <- msg
-			s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. sender:%s, value:%d", msg.Sender.Hex(), msg.Value.Int64())
+			// signer := types.LatestSignerForChainID(tx.ChainId())
+			// sender, err := types.Sender(signer, tx)
+			// if err != nil {
+			// 	return nil, fmt.Errorf("error cannot get sender from transaction. err:%w", err)
+			// }
+			receiver := common.BytesToAddress(log.Topics[1].Bytes())
+			msg := message.NewDepositMessage(receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)))
+			msgs = append(msgs, msg)
 		}
 	}
-	return nil
+	return msgs, nil
+}
+
+func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
+	for _, msg := range msgs {
+		s.msgChan <- msg
+		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. sender:%s, value:%s", msg.Sender.Hex(), msg.Value.String())
+	}
 }

@@ -7,16 +7,20 @@ import "@openzeppelin/contracts/utils/Context.sol";
 contract BerithSwap is Ownable {
     uint64 public depositNonce;
 
-    event Deposit(
-        uint64 depositNonce,
-        address indexed user,
-        address receipient,
-        uint256 amount
-    );
+    event Deposit(uint64 depositNonce, address indexed receipient);
 
-    function deposit(address receipientAddress) external payable {
+    modifier olnyInteger(uint256 value) {
+        require(
+            value % 1 ether == 0,
+            "Only the amount in [ ber ] units can be sended"
+        );
+        _;
+    }
+
+    function deposit(
+        address receipientAddress
+    ) external payable olnyInteger(msg.value) {
         address rec;
-        address sender = _msgSender();
 
         if (receipientAddress == address(0)) {
             rec = _msgSender();
@@ -25,7 +29,7 @@ contract BerithSwap is Ownable {
         }
 
         depositNonce++;
-        emit Deposit(depositNonce, sender, rec, msg.value);
+        emit Deposit(depositNonce, rec);
     }
 
     function weiToEther(uint256 weiAmount) private pure returns (uint256) {

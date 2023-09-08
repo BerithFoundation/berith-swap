@@ -88,7 +88,8 @@ func (r *ReceiverChain) listen() error {
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	txHash, err := r.erc20Contract.Transfer(m.Sender, m.Value, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
 	if err != nil {
-		r.c.Logger.Error().Err(err).Msgf("transaction submit failed.", txHash.Hex())
+
+		r.c.Logger.Error().Err(err).Any("Address", m.Sender.Hex()).Any("Value", m.Value.Uint64()).Msg("transaction submit failed.")
 		return err
 	}
 
@@ -99,6 +100,6 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	}
 
 	gasUsed := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).SetUint64(rec.GasUsed)), new(big.Float).SetInt(big.NewInt(1e18)))
-	r.c.Logger.Info().Msgf("receive tx receipt successfully. Tx Hash : %s, GasUsed: %s", txHash.Hex(), rec.BlockNumber, gasUsed.String())
+	r.c.Logger.Info().Msgf("receive tx receipt successfully. Block: %s, Tx Hash: %s, GasUsed: %s", rec.BlockNumber, txHash.Hex(), gasUsed.String())
 	return nil
 }

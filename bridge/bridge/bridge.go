@@ -3,10 +3,11 @@ package bridge
 import (
 	"berith-swap/bridge/config"
 	"berith-swap/bridge/message"
+	"math/big"
 )
 
 const (
-	MsgChanSize = 10
+	MsgChanSize = 50
 	SenderIdx   = 0
 	ReceiverIdx = 1
 )
@@ -30,8 +31,17 @@ func NewBridge(cfg *config.Config) *Bridge {
 
 func (b *Bridge) Start() error {
 	ch := make(chan error)
-	b.sc.start(ch)
-	b.rc.start(ch)
+	go b.sc.start(ch)
+	go b.rc.start(ch)
 
-	return <-ch
+	err := <-ch
+	latest, bsErr := b.sc.blockStore.TryLoadLatestBlock()
+	if err != nil {
+		b.sc.c.Logger.Error().Err(bsErr).Msg("cannot load latest block number from blockstore after error occured.")
+	}
+	bsErr = b.sc.blockStore.StoreBlock(new(big.Int).Sub(latest, big.NewInt(1)))
+	if err != nil {
+		b.sc.c.Logger.Error().Err(bsErr).Msg("cannot store previous block number into blockstore after error occured.")
+	}
+	return err
 }

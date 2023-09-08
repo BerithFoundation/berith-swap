@@ -101,3 +101,7 @@ func fileExists(fileName string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (bs *Blockstore) FullPath() string {
+	return bs.fullPath
+}

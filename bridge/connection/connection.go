@@ -2,6 +2,7 @@ package connection
 
 import (
 	"berith-swap/bridge/keypair"
+	"berith-swap/bridge/message"
 	"berith-swap/bridge/transaction"
 	"context"
 	"encoding/json"
@@ -15,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/rs/zerolog"
@@ -161,7 +161,7 @@ func (c *EvmClient) GetTransactionByHash(h common.Hash) (tx *types.Transaction, 
 	return c.Client.TransactionByHash(context.Background(), h)
 }
 
-func (c *EvmClient) FetchEventLogs(ctx context.Context, contractAddress common.Address, methodSig string, startBlock *big.Int, endBlock *big.Int) ([]types.Log, error) {
+func (c *EvmClient) FetchEventLogs(ctx context.Context, contractAddress common.Address, methodSig message.EventSig, startBlock *big.Int, endBlock *big.Int) ([]types.Log, error) {
 	logs, err := c.FilterLogs(ctx, buildQuery(contractAddress, methodSig, startBlock, endBlock))
 	if err != nil {
 		return []types.Log{}, err
@@ -261,13 +261,13 @@ func (c *EvmClient) EnsureHasBytecode(addr common.Address) error {
 	return nil
 }
 
-func buildQuery(contract common.Address, sig string, startBlock *big.Int, endBlock *big.Int) ethereum.FilterQuery {
+func buildQuery(contract common.Address, sig message.EventSig, startBlock *big.Int, endBlock *big.Int) ethereum.FilterQuery {
 	query := ethereum.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
 		Addresses: []common.Address{contract},
 		Topics: [][]common.Hash{
-			{crypto.Keccak256Hash([]byte(sig))},
+			{sig.GetTopic()},
 		},
 	}
 	return query
