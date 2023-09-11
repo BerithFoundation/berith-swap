@@ -15,7 +15,7 @@ func NewLogger(v zerolog.Level, name string) zerolog.Logger {
 			if i == nil {
 				return strings.ToUpper(fmt.Sprintf("[ %s ] | %-6s|", name, "INFO"))
 			}
-			return strings.ToUpper(fmt.Sprintf("[ %s ] |%-6s|", name, i))
+			return strings.ToUpper(fmt.Sprintf("[ %s ] | %-6s|", name, i))
 		},
 		TimeFormat: "06.01.02 15:04:05"}
 

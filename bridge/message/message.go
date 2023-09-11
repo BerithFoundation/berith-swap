@@ -7,10 +7,11 @@ import (
 )
 
 type DepositMessage struct {
-	Sender common.Address
-	Value  *big.Int
+	BlockNumber uint64
+	Sender      common.Address
+	Value       *big.Int
 }
 
-func NewDepositMessage(sender common.Address, value *big.Int) DepositMessage {
-	return DepositMessage{Sender: sender, Value: value}
+func NewDepositMessage(blockNumber uint64, receiver common.Address, value *big.Int) DepositMessage {
+	return DepositMessage{BlockNumber: blockNumber, Sender: receiver, Value: value}
 }

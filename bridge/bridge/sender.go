@@ -30,15 +30,12 @@ type SenderChain struct {
 	startBlock         *big.Int
 }
 
-func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx int) *SenderChain {
+func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *SenderChain {
 	chain, err := chain.NewChain(cfg, idx)
 	if err != nil {
 		chain.Logger.Panic().Err(err).Msgf("cannot init chain. idx:%d", idx)
 	}
-	bs, err := blockstore.NewBlockstore(cfg.BlockStorePath, chain.Name)
-	if err != nil {
-		chain.Logger.Panic().Err(err).Msg("cannot init block store")
-	}
+
 	blockConfirmations, err := util.StringToBig(cfg.ChainConfig[idx].BlockConfirmations, 10) // contract 등록 유무로 isSender
 	if err != nil {
 		chain.Logger.Error().Msgf("cannot get block confirmations from config. set default:%d", DefaultBlockConfirmations.Int64())
@@ -137,12 +134,6 @@ func (s *SenderChain) pollBlocks() error {
 			s.c.Logger.Info().Msgf("message sended compeletely, msgs:%d", len(msgs))
 		}
 
-		// Write to block store. Not a critical operation, no need to retry
-		err = s.blockStore.StoreBlock(currentBlock)
-		if err != nil {
-			s.c.Logger.Error().Err(err).Any("block", currentBlock).Msg("Failed to write latest block to blockstore")
-		}
-
 		// Goto next block and reset retry counter
 		currentBlock.Add(currentBlock, big.NewInt(1))
 		retry = BlockRetryLimit
@@ -170,8 +161,9 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 			// if err != nil {
 			// 	return nil, fmt.Errorf("error cannot get sender from transaction. err:%w", err)
 			// }
+
 			receiver := common.BytesToAddress(log.Topics[1].Bytes())
-			msg := message.NewDepositMessage(receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)))
+			msg := message.NewDepositMessage(log.BlockNumber, receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)))
 			msgs = append(msgs, msg)
 		}
 	}
@@ -181,6 +173,6 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
 	for _, msg := range msgs {
 		s.msgChan <- msg
-		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. sender:%s, value:%s", msg.Sender.Hex(), msg.Value.String())
+		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. block:%d receiver:%s, value:%s", msg.BlockNumber, msg.Sender.Hex(), msg.Value.String())
 	}
 }

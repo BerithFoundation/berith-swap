@@ -24,7 +24,6 @@ type Config struct {
 type RawChainConfig struct {
 	Idx                int8   `json:"idx"`
 	Name               string `json:"name"`
-	Type               string `json:"type"`
 	Endpoint           string `json:"endpoint"`
 	Owner              string `json:"owner"`
 	BridgeAddress      string `json:"bridgeAddress"`
@@ -48,7 +47,7 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	}
 	err := loadConfig(path, cfg)
 	if err != nil {
-		log.Warn().Err(err).Msg("err loading json file")
+		log.Warn().Err(err).Msg("cannot parse json file")
 		return nil, err
 	}
 	if ksPath := ctx.String(cmd.KeystorePathFlag.Name); ksPath != "" {
@@ -57,24 +56,17 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	if store := ctx.String(cmd.BlockstorePathFlag.Name); store != "" {
 		cfg.BlockStorePath = store
 	}
-	if isLoaded := ctx.Bool(cmd.IsLoaded.Name); isLoaded {
+	if isLoaded := ctx.Bool(cmd.LoadFlag.Name); isLoaded {
 		cfg.IsLoaded = isLoaded
 	}
 	if verbosity := ctx.Int64(cmd.VerbosityFlag.Name); zerolog.TraceLevel <= zerolog.Level(verbosity) && zerolog.Level(verbosity) <= zerolog.Disabled {
 		cfg.Verbosity = zerolog.Level(verbosity)
 	}
 	if pwPath := ctx.String(cmd.PasswordPathFlag.Name); pwPath != "" {
-		abPath, err := filepath.Abs(pwPath)
+		lines, err := ParsePasswordFile(pwPath)
 		if err != nil {
-			log.Error().Err(err).Msg("cannot get absolute path of password file")
-			return nil, err
+			log.Error().Err(err).Msg("cannot parse passsword file")
 		}
-		text, err := os.ReadFile(abPath)
-		if err != nil {
-			log.Error().Err(err).Msgf("cannot read password file. path:%s", abPath)
-			return nil, err
-		}
-		lines := strings.Split(string(text), "\n")
 		for i, l := range lines {
 			cfg.ChainConfig[i].Password = l
 		}
@@ -106,4 +98,20 @@ func loadConfig(file string, config *Config) error {
 	}
 
 	return nil
+}
+
+func ParsePasswordFile(pwPath string) ([]string, error) {
+	abPath, err := filepath.Abs(pwPath)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot get absolute path of password file")
+		return nil, err
+	}
+	text, err := os.ReadFile(abPath)
+	if err != nil {
+		log.Error().Err(err).Msgf("cannot read password file. path:%s", abPath)
+		return nil, err
+	}
+	lines := strings.Split(string(text), "\n")
+
+	return lines, nil
 }

@@ -22,7 +22,7 @@ var cliFlags = []cli.Flag{
 	cmd.KeystorePathFlag,
 	cmd.PasswordPathFlag,
 	cmd.BlockstorePathFlag,
-	cmd.IsLoaded,
+	cmd.LoadFlag,
 }
 
 func init() {
@@ -49,4 +49,5 @@ func run(ctx *cli.Context) error {
 	}
 	b := bridge.NewBridge(cfg)
 	return b.Start()
+	//TODO: receiver tx 실패 시 sender 블록 스토어 롤백 적용하기
 }

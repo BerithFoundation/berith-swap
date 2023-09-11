@@ -19,8 +19,8 @@ type TX struct {
 	tx *types.Transaction
 }
 
-func (a *TX) RawWithSignature(signer keypair.Signer, domainID *big.Int) ([]byte, error) {
-	opts, err := newTransactorWithChainID(signer, domainID)
+func (a *TX) RawWithSignature(signer keypair.Signer, chainID *big.Int) ([]byte, error) {
+	opts, err := newTransactorWithChainID(signer, chainID)
 	if err != nil {
 		return nil, err
 	}

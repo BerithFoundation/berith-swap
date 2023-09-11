@@ -21,16 +21,12 @@ type ReceiverChain struct {
 	blockStore    *blockstore.Blockstore
 }
 
-func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx int) *ReceiverChain {
+func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *ReceiverChain {
 	chainCfg := cfg.ChainConfig[idx]
 
 	chain, err := chain.NewChain(cfg, idx)
 	if err != nil {
 		chain.Logger.Panic().Err(err).Msgf("cannot init chain. idx:%d", idx)
-	}
-	bs, err := blockstore.NewBlockstore(cfg.BlockStorePath, chain.Name)
-	if err != nil {
-		chain.Logger.Panic().Err(err).Msg("cannot init block store")
 	}
 
 	newErc20, err := contract.InitErc20Contract(chain.EvmClient, chainCfg.Erc20Address, &chain.Logger)
@@ -88,7 +84,6 @@ func (r *ReceiverChain) listen() error {
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	txHash, err := r.erc20Contract.Transfer(m.Sender, m.Value, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
 	if err != nil {
-
 		r.c.Logger.Error().Err(err).Any("Address", m.Sender.Hex()).Any("Value", m.Value.Uint64()).Msg("transaction submit failed.")
 		return err
 	}
@@ -101,5 +96,12 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 
 	gasUsed := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).SetUint64(rec.GasUsed)), new(big.Float).SetInt(big.NewInt(1e18)))
 	r.c.Logger.Info().Msgf("receive tx receipt successfully. Block: %s, Tx Hash: %s, GasUsed: %s", rec.BlockNumber, txHash.Hex(), gasUsed.String())
+
+	err = r.blockStore.StoreBlock(new(big.Int).SetUint64(m.BlockNumber))
+	if err != nil {
+		r.c.Logger.Error().Err(err).Msg("Failed to write latest block to blockstore")
+		return err
+	}
+	r.c.Logger.Info().Msgf("saved the block number where the deposit event occurred. number: %d", m.BlockNumber)
 	return nil
 }

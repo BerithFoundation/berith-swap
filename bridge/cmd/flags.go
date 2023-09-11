@@ -34,15 +34,16 @@ var (
 		Value: "./blockstore",
 	}
 
-	IsLoaded = &cli.BoolFlag{
-		Name:  "isloaded",
+	LoadFlag = &cli.BoolFlag{
+		Name:  "load",
 		Usage: "Disables loading from blockstore at start. Opts will still be used if specified.",
 		Value: true,
 	}
 
 	PasswordPathFlag = &cli.StringFlag{
-		Name:  "password",
-		Usage: "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
-		Value: "./password",
+		Name:     "password",
+		Required: true,
+		Usage:    "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
+		Value:    "./password",
 	}
 )

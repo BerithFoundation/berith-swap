@@ -1,9 +1,11 @@
 package bridge
 
 import (
+	"berith-swap/bridge/blockstore"
 	"berith-swap/bridge/config"
 	"berith-swap/bridge/message"
-	"math/big"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -21,8 +23,12 @@ func NewBridge(cfg *config.Config) *Bridge {
 	br := new(Bridge)
 
 	msgChan := make(chan message.DepositMessage)
-	sc := NewSenderChain(msgChan, cfg, SenderIdx)
-	rc := NewReceiverChain(msgChan, cfg, ReceiverIdx)
+	bs, err := blockstore.NewBlockstore(cfg.BlockStorePath, cfg.ChainConfig[0].Name)
+	if err != nil {
+		log.Error().Err(err).Msg("cannot initialize block store")
+	}
+	sc := NewSenderChain(msgChan, cfg, SenderIdx, bs)
+	rc := NewReceiverChain(msgChan, cfg, ReceiverIdx, bs)
 
 	br.sc = sc
 	br.rc = rc
@@ -34,14 +40,5 @@ func (b *Bridge) Start() error {
 	go b.sc.start(ch)
 	go b.rc.start(ch)
 
-	err := <-ch
-	latest, bsErr := b.sc.blockStore.TryLoadLatestBlock()
-	if err != nil {
-		b.sc.c.Logger.Error().Err(bsErr).Msg("cannot load latest block number from blockstore after error occured.")
-	}
-	bsErr = b.sc.blockStore.StoreBlock(new(big.Int).Sub(latest, big.NewInt(1)))
-	if err != nil {
-		b.sc.c.Logger.Error().Err(bsErr).Msg("cannot store previous block number into blockstore after error occured.")
-	}
-	return err
+	return <-ch
 }
