@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type Contract struct {
@@ -17,6 +17,7 @@ type Contract struct {
 	bytecode        []byte
 	client          transaction.ContractCallerDispatcher
 	transaction.Transactor
+	Logger *zerolog.Logger
 }
 
 func NewContract(
@@ -25,6 +26,7 @@ func NewContract(
 	bytecode []byte,
 	client transaction.ContractCallerDispatcher,
 	transactor transaction.Transactor,
+	logger *zerolog.Logger,
 ) Contract {
 	return Contract{
 		contractAddress: contractAddress,
@@ -32,6 +34,7 @@ func NewContract(
 		bytecode:        bytecode,
 		client:          client,
 		Transactor:      transactor,
+		Logger:          logger,
 	}
 }
 
@@ -42,7 +45,7 @@ func (c *Contract) ContractAddress() *common.Address {
 func (c *Contract) PackMethod(method string, args ...interface{}) ([]byte, error) {
 	input, err := c.ABI.Pack(method, args...)
 	if err != nil {
-		log.Error().Err(fmt.Errorf("pack method error: %v", err))
+		c.Logger.Error().Err(fmt.Errorf("pack method error: %v", err))
 		return []byte{}, err
 	}
 	return input, nil
@@ -51,7 +54,7 @@ func (c *Contract) PackMethod(method string, args ...interface{}) ([]byte, error
 func (c *Contract) UnpackResult(method string, output []byte) ([]interface{}, error) {
 	res, err := c.ABI.Unpack(method, output)
 	if err != nil {
-		log.Error().Err(fmt.Errorf("unpack output error: %v", err))
+		c.Logger.Error().Err(fmt.Errorf("unpack output error: %v", err))
 		return nil, err
 	}
 	return res, err
@@ -64,13 +67,13 @@ func (c *Contract) ExecuteTransaction(method string, opts transaction.TransactOp
 	}
 	h, err := c.Transact(&c.contractAddress, input, opts)
 	if err != nil {
-		log.Error().
+		c.Logger.Error().
 			Str("contract", c.contractAddress.String()).
 			Err(err).
 			Msgf("error on executing %s", method)
 		return nil, err
 	}
-	log.Debug().
+	c.Logger.Debug().
 		Str("txHash", h.String()).
 		Str("contract", c.contractAddress.String()).
 		Msgf("method %s executed", method)
@@ -85,7 +88,7 @@ func (c *Contract) CallContract(method string, args ...interface{}) ([]interface
 	msg := ethereum.CallMsg{From: c.client.From(), To: &c.contractAddress, Data: input}
 	out, err := c.client.CallContract(context.TODO(), transaction.ToCallArg(msg), nil)
 	if err != nil {
-		log.Error().
+		c.Logger.Error().
 			Str("contract", c.contractAddress.String()).
 			Err(err).
 			Msgf("error on calling %s", method)
@@ -99,7 +102,7 @@ func (c *Contract) CallContract(method string, args ...interface{}) ([]interface
 			return nil, fmt.Errorf("no code at provided address %s", c.contractAddress.String())
 		}
 	}
-	log.Debug().
+	c.Logger.Debug().
 		Str("contract", c.contractAddress.String()).
 		Msgf("method %s called", method)
 	return c.UnpackResult(method, out)

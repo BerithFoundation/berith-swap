@@ -42,3 +42,8 @@ func (b *Bridge) Start() error {
 
 	return <-ch
 }
+
+func (b *Bridge) Stop() {
+	go b.sc.Stop()
+	b.rc.Stop()
+}

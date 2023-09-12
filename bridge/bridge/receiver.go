@@ -7,6 +7,7 @@ import (
 	contract "berith-swap/bridge/contract"
 	message "berith-swap/bridge/message"
 	transaction "berith-swap/bridge/transaction"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -19,6 +20,7 @@ type ReceiverChain struct {
 	msgChan       <-chan message.DepositMessage
 	erc20Contract *contract.ERC20Contract
 	blockStore    *blockstore.Blockstore
+	stop          chan struct{}
 }
 
 func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *ReceiverChain {
@@ -39,6 +41,7 @@ func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx 
 		blockStore:    bs,
 		msgChan:       ch,
 		erc20Contract: newErc20,
+		stop:          make(chan struct{}),
 	}
 	rc.setReceiverErc20Contract(&chainCfg)
 	go rc.listen()
@@ -72,19 +75,25 @@ func (r *ReceiverChain) start(ch chan error) {
 
 func (r *ReceiverChain) listen() error {
 	for {
-		m := <-r.msgChan
-		err := r.SendToken(m)
-		if err != nil {
-			r.c.Logger.Error().Err(err).Msg("error occured during send token. stop receiver chain.")
-			return err
+		select {
+		case m := <-r.msgChan:
+			err := r.SendToken(m)
+			if err != nil {
+				r.c.Logger.Error().Err(err).Msg("error occured during send token. stop receiver chain.")
+				return err
+			}
+		case <-r.stop:
+			r.c.Logger.Error().Msg("receiver chain got stop sign")
+			return errors.New("receiver chain stopped")
 		}
+
 	}
 }
 
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
-	txHash, err := r.erc20Contract.Transfer(m.Sender, m.Value, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
+	txHash, err := r.erc20Contract.Transfer(m.Receiver, m.Value, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
 	if err != nil {
-		r.c.Logger.Error().Err(err).Any("Address", m.Sender.Hex()).Any("Value", m.Value.Uint64()).Msg("transaction submit failed.")
+		r.c.Logger.Error().Err(err).Any("Address", m.Receiver.Hex()).Any("Value", m.Value.Uint64()).Msg("transaction submit failed.")
 		return err
 	}
 
@@ -104,4 +113,8 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	}
 	r.c.Logger.Info().Msgf("saved the block number where the deposit event occurred. number: %d", m.BlockNumber)
 	return nil
+}
+
+func (r *ReceiverChain) Stop() {
+	r.stop <- struct{}{}
 }

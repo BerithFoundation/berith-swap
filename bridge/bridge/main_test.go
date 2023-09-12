@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	configDir = "../run_test/"
+	configDir = "../../run_test/"
 )
 
 func initTestconfig(t *testing.T) *config.Config {
@@ -28,7 +28,7 @@ func initTestconfig(t *testing.T) *config.Config {
 				Erc20Address:       "",
 				GasLimit:           "9000000",
 				MaxGasPrice:        "30000000000",
-				BlockConfirmations: "10",
+				BlockConfirmations: "1",
 				Password:           lines[0],
 			},
 			{
@@ -40,7 +40,7 @@ func initTestconfig(t *testing.T) *config.Config {
 				Erc20Address:       "0x1A89EC8D286c3060067D9D4341E9Ccf1a99653B6",
 				GasLimit:           "9000000",
 				MaxGasPrice:        "10000000000",
-				BlockConfirmations: "10",
+				BlockConfirmations: "1",
 				Password:           lines[1],
 			},
 		},
@@ -51,8 +51,7 @@ func initTestconfig(t *testing.T) *config.Config {
 	}
 }
 
-func newTestBridge(t *testing.T) *Bridge {
-	cfg := initTestconfig(t)
+func newTestBridge(t *testing.T, cfg *config.Config) *Bridge {
 	br := NewBridge(cfg)
 	require.NotNil(t, br)
 	return br

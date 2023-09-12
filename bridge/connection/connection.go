@@ -33,7 +33,7 @@ type EvmClient struct {
 }
 
 func NewEvmClient(s *keypair.Keypair, endPoint string, logger *zerolog.Logger) (*EvmClient, error) {
-	logger.Info().Msgf("Connecting to ethereum chain... url:%s", endPoint)
+	logger.Info().Msgf("Connecting to evm chain... url:%s", endPoint)
 
 	ctx := context.Background()
 	rpcClient, err := rpc.DialContext(ctx, endPoint)

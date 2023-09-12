@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 contract BerithSwap is Ownable {
     uint64 public depositNonce;
 
-    event Deposit(uint64 depositNonce, address indexed receipient);
+    event Deposit(uint64 depositNonce, address indexed recipient);
 
     modifier olnyInteger(uint256 value) {
         require(

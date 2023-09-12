@@ -26,13 +26,19 @@ func NewBridgeContract(
 	a, _ := abi.JSON(strings.NewReader(consts.BerithSwapABI))
 	b := common.FromHex(consts.BerithSwapBin)
 	return &BridgeContract{
-		Contract: NewContract(BridgeContractAddress, a, b, client, transactor),
+		Contract: NewContract(BridgeContractAddress, a, b, client, transactor, logger),
 		Logger:   logger,
 	}
 }
 
 func (b *BridgeContract) WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt, error) {
 	return b.Contract.client.WaitAndReturnTxReceipt(*hash)
+}
+
+func (b *BridgeContract) Deposit(receiver common.Address,
+	opts transaction.TransactOptions) (*common.Hash, error) {
+	b.Logger.Debug().Msgf("deposit %s BERS, receiver:%s", new(big.Int).Div(opts.Value, big.NewInt(1e18)).String(), receiver.Hex())
+	return b.ExecuteTransaction("deposit", opts, receiver)
 }
 
 func (b *BridgeContract) GetBalance(address common.Address) (*big.Int, error) {

@@ -8,6 +8,7 @@ import (
 	"berith-swap/bridge/message"
 	"berith-swap/bridge/util"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -28,6 +29,7 @@ type SenderChain struct {
 	blockConfirmations *big.Int
 	bridgeContract     *contract.BridgeContract
 	startBlock         *big.Int
+	stop               chan struct{}
 }
 
 func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *SenderChain {
@@ -47,9 +49,9 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 		chain.Logger.Error().Err(err).Msgf("cannot get latest block through evmclient.")
 		return nil
 	}
-	chain.Logger.Info().Msgf("Latest block : %d", startBlock.Uint64())
 
 	if cfg.IsLoaded {
+		chain.Logger.Info().Msgf("try load latest block from block store isLoaded:%v", cfg.IsLoaded)
 		startBlock, err = bs.TryLoadLatestBlock()
 		if err != nil {
 			chain.Logger.Panic().Err(err).Msgf("cannot load latest block from block store.")
@@ -57,12 +59,15 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 		chain.Logger.Info().Msgf("loaded latest block number form blockstore. path:%s, number:%d", bs.FullPath(), startBlock.Uint64())
 	}
 
+	chain.Logger.Info().Msgf("Latest block : %d", startBlock.Uint64())
+
 	sc := SenderChain{
 		c:                  chain,
 		msgChan:            ch,
 		blockStore:         bs,
 		blockConfirmations: blockConfirmations,
 		startBlock:         startBlock,
+		stop:               make(chan struct{}),
 	}
 
 	sc.setSenderBridgeContract(&cfg.ChainConfig[idx])
@@ -92,14 +97,25 @@ func (s *SenderChain) setSenderBridgeContract(chainCfg *config.RawChainConfig) e
 
 func (s *SenderChain) start(ch chan error) {
 	ch <- s.pollBlocks()
+
 }
 
 func (s *SenderChain) pollBlocks() error {
 	var currentBlock = s.startBlock
-	s.c.Logger.Info().Msgf("Polling Blocks.. current block:%d", currentBlock.Int64())
+	s.c.Logger.Info().Msgf("Polling Blocks.. current block:%s", currentBlock.String())
+
+	var isStopped bool
+	go func() {
+		<-s.stop
+		isStopped = true
+	}()
 
 	var retry = BlockRetryLimit
 	for {
+		if isStopped {
+			s.c.Logger.Error().Msg("sender chain got stop sign")
+			return errors.New("sender chain stopped")
+		}
 		// No more retries, goto next block
 		if retry == 0 {
 			err := fmt.Errorf("sender chain failed to poll block, retries exceeded")
@@ -110,14 +126,14 @@ func (s *SenderChain) pollBlocks() error {
 
 		latestBlock, err := s.c.EvmClient.LatestBlock()
 		if err != nil {
-			s.c.Logger.Error().Any("block", currentBlock).Err(err).Msg("Unable to get latest block")
+			s.c.Logger.Error().Any("block", currentBlock.String()).Err(err).Msg("Unable to get latest block")
 			retry--
 			time.Sleep(BlockRetryInterval)
 			continue
 		}
 
 		if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(s.blockConfirmations) == -1 {
-			s.c.Logger.Debug().Any("current", currentBlock).Any("latest", latestBlock).Msg("Block not ready, will retry")
+			s.c.Logger.Debug().Any("current", currentBlock.String()).Any("latest", latestBlock.String()).Msg("Block not ready, will retry")
 			time.Sleep(BlockRetryInterval)
 			continue
 		}
@@ -173,6 +189,10 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
 	for _, msg := range msgs {
 		s.msgChan <- msg
-		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. block:%d receiver:%s, value:%s", msg.BlockNumber, msg.Sender.Hex(), msg.Value.String())
+		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. block:%d receiver:%s, value:%s", msg.BlockNumber, msg.Receiver.Hex(), msg.Value.String())
 	}
+}
+
+func (s *SenderChain) Stop() {
+	s.stop <- struct{}{}
 }

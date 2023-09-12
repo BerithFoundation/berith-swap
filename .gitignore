@@ -1,2 +1,3 @@
 run_test/*
 contract/hardhat.config.js
+bridge/contract/consts/compiled

@@ -11,4 +11,10 @@ deploy:
 	cd contract && npx hardhat run scripts/bers-token.js --network klaytnTestnet
 	cd contract && npx hardhat run scripts/berith-swap.js --network berithTestnet
 
-.PHONY: build runtest solc deploy
+ctest:
+	cd contract && npx hardhat test
+
+test:
+	cd bridge/bridge && go test -run TestInvalidReceiver -timeout=1m -v
+
+.PHONY: build runtest solc deploy ctest test

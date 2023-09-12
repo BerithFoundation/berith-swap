@@ -26,7 +26,7 @@ func NewERC20Contract(
 	a, _ := abi.JSON(strings.NewReader(consts.BersTokenABI))
 	b := common.FromHex(consts.BersTokenBin)
 	return &ERC20Contract{
-		Contract: NewContract(erc20ContractAddress, a, b, client, transactor),
+		Contract: NewContract(erc20ContractAddress, a, b, client, transactor, logger),
 		Logger:   logger,
 	}
 }

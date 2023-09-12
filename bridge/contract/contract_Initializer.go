@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	gasPrice = big.NewInt(25000000000)
+	DefaultGasPrice = big.NewInt(25000000000)
 )
 
 func InitializeTransactor(
@@ -32,7 +32,7 @@ func InitializeTransactor(
 
 func InitErc20Contract(c *connection.EvmClient, erc20Addr string, logger *zerolog.Logger) (*ERC20Contract, error) {
 
-	t, err := InitializeTransactor(gasPrice, transaction.NewTransaction, c)
+	t, err := InitializeTransactor(DefaultGasPrice, transaction.NewTransaction, c)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func InitErc20Contract(c *connection.EvmClient, erc20Addr string, logger *zerolo
 
 func IniBridgeContract(c *connection.EvmClient, bridgeAddr string, logger *zerolog.Logger) (*BridgeContract, error) {
 
-	t, err := InitializeTransactor(gasPrice, transaction.NewTransaction, c)
+	t, err := InitializeTransactor(DefaultGasPrice, transaction.NewTransaction, c)
 	if err != nil {
 		return nil, err
 	}

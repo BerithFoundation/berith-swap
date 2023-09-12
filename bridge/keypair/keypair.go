@@ -39,16 +39,11 @@ func GenerateKeyPair(addr, path, password string) (*Keypair, error) {
 	return kp, nil
 }
 
-func NewKeypairFromPrivateKey(priv []byte) (*Keypair, error) {
-	pk, err := secp256k1.ToECDSA(priv)
-	if err != nil {
-		return nil, err
-	}
-
+func NewKeypairFromPrivateKey(priv *ecdsa.PrivateKey) *Keypair {
 	return &Keypair{
-		public:  pk.Public().(*ecdsa.PublicKey),
-		private: pk,
-	}, nil
+		public:  priv.Public().(*ecdsa.PublicKey),
+		private: priv,
+	}
 }
 
 // Encode dumps the private key as bytes
