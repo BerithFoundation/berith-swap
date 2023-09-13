@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS bers_swap_hist; 

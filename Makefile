@@ -15,6 +15,9 @@ ctest:
 	cd contract && npx hardhat test
 
 test:
-	cd bridge/bridge && go test -run TestInvalidReceiver -timeout=1m -v
+	cd bridge/bridge && go test -run TestDeposit -timeout=2m -v
 
-.PHONY: build runtest solc deploy ctest test
+sqlc:
+	sqlc generate
+
+.PHONY: build runtest solc deploy ctest test sqlc

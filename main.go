@@ -6,6 +6,7 @@ import (
 	"berith-swap/bridge/config"
 	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 )

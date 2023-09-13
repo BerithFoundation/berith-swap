@@ -179,7 +179,7 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 			// }
 
 			receiver := common.BytesToAddress(log.Topics[1].Bytes())
-			msg := message.NewDepositMessage(log.BlockNumber, receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)))
+			msg := message.NewDepositMessage(log.BlockNumber, receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)), log.TxHash.Hex())
 			msgs = append(msgs, msg)
 		}
 	}
@@ -189,7 +189,7 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
 	for _, msg := range msgs {
 		s.msgChan <- msg
-		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. block:%d receiver:%s, value:%s", msg.BlockNumber, msg.Receiver.Hex(), msg.Value.String())
+		s.c.Logger.Info().Msgf("sender chain send messge to receiver chain. block:%d receiver:%s, value:%s", msg.BlockNumber, msg.Receiver.Hex(), msg.Amount.String())
 	}
 }
 

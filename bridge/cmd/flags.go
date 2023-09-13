@@ -46,4 +46,10 @@ var (
 		Usage:    "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
 		Value:    "./password",
 	}
+
+	DBSourceFlag = &cli.StringFlag{
+		Name:  "dbsource",
+		Usage: "remote db connection source. ex) user:password@tcp(url)/table",
+		Value: "",
+	}
 )

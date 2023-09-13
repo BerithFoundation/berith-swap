@@ -2,11 +2,14 @@ package bridge
 
 import (
 	"berith-swap/bridge/blockstore"
-	chain "berith-swap/bridge/chain"
+	"berith-swap/bridge/chain"
 	"berith-swap/bridge/config"
-	contract "berith-swap/bridge/contract"
-	message "berith-swap/bridge/message"
-	transaction "berith-swap/bridge/transaction"
+	"berith-swap/bridge/contract"
+	"berith-swap/bridge/message"
+	"berith-swap/bridge/store"
+	"berith-swap/bridge/store/mariadb"
+	"berith-swap/bridge/transaction"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -21,6 +24,7 @@ type ReceiverChain struct {
 	erc20Contract *contract.ERC20Contract
 	blockStore    *blockstore.Blockstore
 	stop          chan struct{}
+	store         *store.Store
 }
 
 func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *ReceiverChain {
@@ -36,12 +40,18 @@ func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx 
 		chain.Logger.Panic().Err(err).Msg("cannot init erc20 contract")
 	}
 
+	store, err := store.NewStore(cfg.DBSource)
+	if err != nil {
+		chain.Logger.Panic().Err(err).Msg("cannot init remote db store")
+	}
+
 	rc := ReceiverChain{
 		c:             chain,
 		blockStore:    bs,
 		msgChan:       ch,
 		erc20Contract: newErc20,
 		stop:          make(chan struct{}),
+		store:         store,
 	}
 	rc.setReceiverErc20Contract(&chainCfg)
 	go rc.listen()
@@ -91,9 +101,9 @@ func (r *ReceiverChain) listen() error {
 }
 
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
-	txHash, err := r.erc20Contract.Transfer(m.Receiver, m.Value, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
+	txHash, err := r.erc20Contract.Transfer(m.Receiver, m.Amount, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
 	if err != nil {
-		r.c.Logger.Error().Err(err).Any("Address", m.Receiver.Hex()).Any("Value", m.Value.Uint64()).Msg("transaction submit failed.")
+		r.c.Logger.Error().Err(err).Any("Address", m.Receiver.Hex()).Any("Value", m.Amount.Uint64()).Msg("transaction submit failed.")
 		return err
 	}
 
@@ -112,6 +122,18 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 		return err
 	}
 	r.c.Logger.Info().Msgf("saved the block number where the deposit event occurred. number: %d", m.BlockNumber)
+
+	err = r.store.CreateSwapHistoryTx(context.Background(), mariadb.CreateBersSwapHistoryParams{
+		SenderTxHash:   m.SenderTxHash,
+		ReceiverTxHash: txHash.Hex(),
+		Amount:         m.Amount.Int64(),
+	})
+	if err != nil {
+		r.c.Logger.Error().Err(err).Msg("Failed to store swap history to remote db")
+		return err
+	}
+
+	r.c.Logger.Info().Msgf("saved sender tx hash into remote db store. sender Tx: %s", m.SenderTxHash)
 	return nil
 }
 

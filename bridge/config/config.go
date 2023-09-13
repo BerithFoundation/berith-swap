@@ -3,6 +3,7 @@ package config
 import (
 	cmd "berith-swap/bridge/cmd"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ type Config struct {
 	ChainConfig    []RawChainConfig `json:"chains"`
 	KeystorePath   string           `json:"keystorePath,omitempty"`
 	BlockStorePath string           `json:"blockStorePath"`
+	DBSource       string           `json:"dbSource"`
 	IsLoaded       bool
 	Verbosity      zerolog.Level
 }
@@ -69,6 +71,14 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 		}
 		for i, l := range lines {
 			cfg.ChainConfig[i].Password = l
+		}
+	}
+	if dbSource := ctx.String(cmd.DBSourceFlag.Name); dbSource != "" {
+		cfg.DBSource = dbSource
+	} else {
+		if cfg.DBSource == "" {
+			err := errors.New("db source was not provided")
+			log.Error().Err(err).Msg("")
 		}
 	}
 

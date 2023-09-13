@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - engine: "mysql"
+    queries: "./bridge/store/query"
+    schema: "./bridge/store/migrate"
+    gen:
+      go:
+        package: "mariadb"
+        out: "./bridge/store/mariadb"
+        emit_json_tags: true
+        emit_empty_slices: true
+        emit_interface: true
