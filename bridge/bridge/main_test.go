@@ -1,10 +1,19 @@
 package bridge
 
 import (
+	chain "berith-swap/bridge/chain"
 	"berith-swap/bridge/config"
+	"berith-swap/bridge/connection"
+	"berith-swap/bridge/contract"
+	"berith-swap/bridge/evmgaspricer"
+	"berith-swap/bridge/keypair"
+	"berith-swap/bridge/transaction"
 	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
@@ -59,4 +68,24 @@ func newTestBridge(t *testing.T, cfg *config.Config) *Bridge {
 
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
+}
+
+func testNewBridgeContract(t *testing.T, chainCfg config.RawChainConfig) (*contract.BridgeContract, common.Address) {
+	pk, err := crypto.HexToECDSA(testPrivKey)
+	require.NoError(t, err)
+	require.NotNil(t, pk)
+	testKp := keypair.NewKeypairFromPrivateKey(pk)
+	testLogger := chain.NewLogger(zerolog.Level(-1), "tester")
+
+	client, err := connection.NewEvmClient(testKp, chainCfg.Endpoint, &testLogger)
+	require.NoError(t, err)
+
+	gasPricer := evmgaspricer.NewLondonGasPriceClient(
+		client,
+		&evmgaspricer.GasPricerOpts{UpperLimitFeePerGas: gasPrice},
+	)
+
+	trans := transaction.NewSignAndSendTransactor(transaction.NewTransaction, gasPricer, client)
+
+	return contract.NewBridgeContract(client, common.HexToAddress(chainCfg.BridgeAddress), trans, &testLogger), client.From()
 }
