@@ -7,10 +7,10 @@ import (
 )
 
 type DepositMessage struct {
-	BlockNumber  uint64
-	Receiver     common.Address
-	Amount       *big.Int
-	SenderTxHash string
+	BlockNumber  uint64         `validate:"required"`
+	Receiver     common.Address `validate:"required"`
+	Amount       *big.Int       `validate:"required"`
+	SenderTxHash string         `validate:"required,len=66"`
 }
 
 func NewDepositMessage(blockNumber uint64, receiver common.Address, amount *big.Int, hash string) DepositMessage {

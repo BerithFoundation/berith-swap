@@ -6,6 +6,7 @@ import (
 	"berith-swap/bridge/transaction"
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"log"
 	"math/big"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,6 +32,9 @@ var (
 )
 
 func TestBridgeStartStop(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	cfg := initTestconfig(t)
 	bridge := newTestBridge(t, cfg)
 
@@ -49,10 +54,6 @@ func TestBridgeStartStop(t *testing.T) {
 // Receiver를 지정하지 않은 Deposit event를 Sender와 동일한 Receiver로 재 설정하여 처리하는가?
 // 테스트 시간 1분 소요
 func TestInvalidReceiver(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
 	cfg := initTestconfig(t)
 	senderCfg := cfg.ChainConfig[SenderIdx]
 	bridge := newTestBridge(t, cfg)
@@ -122,10 +123,7 @@ func checkBalance(t *testing.T, erc20 *contract.ERC20Contract, before, amt *big.
 }
 
 // 부하 테스트, 테스트 시간 최대 2분가량 필요
-func TestDeposit(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
+func TestMassDeposit(t *testing.T) {
 	const cnt = 100
 	var wg sync.WaitGroup
 	wg.Add(cnt)
@@ -136,7 +134,7 @@ func TestDeposit(t *testing.T) {
 
 	bridgeCt, _ := testNewBridgeContract(t, senderCfg)
 
-	sendAmt := big.NewInt(0).Mul(big.NewInt(1), big.NewInt(1e18))
+	sendAmt := new(big.Int).Mul(big.NewInt(1), big.NewInt(1e18))
 
 	defaultTxOpts.Value = sendAmt
 
@@ -157,7 +155,7 @@ func TestDeposit(t *testing.T) {
 
 			rec, err := bridge.sc.c.EvmClient.Client.TransactionReceipt(context.Background(), *hash)
 			require.NoError(t, err)
-			ch <- message.DepositMessage{BlockNumber: rec.BlockNumber.Uint64(), Receiver: receiver, Amount: new(big.Int).Div(sendAmt, big.NewInt(1e18))}
+			ch <- message.DepositMessage{BlockNumber: rec.BlockNumber.Uint64(), Receiver: receiver, Amount: new(big.Int).Div(sendAmt, big.NewInt(1e18)), SenderTxHash: hash.Hex()}
 			wg.Done()
 		}(msgCh)
 	}
@@ -173,9 +171,71 @@ func TestDeposit(t *testing.T) {
 
 			bal, err := bridge.rc.erc20Contract.GetBalance(msg.Receiver)
 			require.NoError(t, err)
-			require.Equal(t, sendAmt.Cmp(bal), 1)
+			require.Equal(t, bal.Cmp(new(big.Int).Div(sendAmt, big.NewInt(1e18))), 0)
 			wg.Done()
 		}(m)
 	}
 	wg.Wait()
+	bridge.Stop()
+}
+
+func TestHistoryDuplication(t *testing.T) {
+	cfg := initTestconfig(t)
+	senderCfg := cfg.ChainConfig[SenderIdx]
+	bridge := newTestBridge(t, cfg)
+
+	bridgeCt, _ := testNewBridgeContract(t, senderCfg)
+
+	errCh := make(chan error)
+	go func(ch chan error) {
+		// 5초 대기 후 polling
+		<-time.NewTimer(5 * time.Second).C
+		err := bridge.Start()
+
+		ch <- err
+	}(errCh)
+
+	sendAmt := new(big.Int).Mul(big.NewInt(1), big.NewInt(1e18))
+
+	defaultTxOpts.Value = sendAmt
+
+	senderTxHash, err := bridgeCt.Deposit(common.Address{}, defaultTxOpts)
+	require.NoError(t, err)
+	wg.Add(1)
+
+	receipt, err := bridge.sc.c.EvmClient.TransactionReceipt(context.Background(), *senderTxHash)
+	require.NoError(t, err)
+
+	tx, _, err := bridge.sc.c.EvmClient.GetTransactionByHash(*senderTxHash)
+	require.NoError(t, err)
+
+	signer := types.LatestSignerForChainID(bridge.sc.c.EvmClient.ChainId())
+	sender, err := types.Sender(signer, tx)
+	require.NoError(t, err)
+
+	for {
+		hist, err := bridge.rc.store.GetBersSwapHistory(context.Background(), senderTxHash.Hex())
+		if err != nil {
+			if err == sql.ErrNoRows {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			t.Fatalf("db connection error %s", err.Error())
+		}
+
+		require.Equal(t, new(big.Int).Div(sendAmt, big.NewInt(1e18)).Int64(), hist.Amount)
+		break
+	}
+
+	bridge.sc.msgChan <- message.DepositMessage{
+		BlockNumber:  receipt.BlockNumber.Uint64(),
+		Receiver:     sender,
+		Amount:       new(big.Int).Div(sendAmt, big.NewInt(1e18)),
+		SenderTxHash: senderTxHash.Hex(),
+	}
+
+	bridge.Stop()
+
+	err = <-errCh
+	require.Error(t, err)
 }

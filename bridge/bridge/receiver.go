@@ -9,7 +9,9 @@ import (
 	"berith-swap/bridge/store"
 	"berith-swap/bridge/store/mariadb"
 	"berith-swap/bridge/transaction"
+	"berith-swap/bridge/util"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/big"
@@ -53,7 +55,7 @@ func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx 
 		stop:          make(chan struct{}),
 		store:         store,
 	}
-	rc.setReceiverErc20Contract(&chainCfg)
+	rc.setReceiverErc20Contract(chainCfg)
 	go rc.listen()
 	return &rc
 }
@@ -87,6 +89,11 @@ func (r *ReceiverChain) listen() error {
 	for {
 		select {
 		case m := <-r.msgChan:
+			valErr := util.ValidateStruct(m)
+			if valErr != nil {
+				r.c.Logger.Warn().Msgf("Invalid deposit message. %s", valErr.Error())
+				continue
+			}
 			err := r.SendToken(m)
 			if err != nil {
 				r.c.Logger.Error().Err(err).Msg("error occured during send token. stop receiver chain.")
@@ -100,7 +107,21 @@ func (r *ReceiverChain) listen() error {
 	}
 }
 
+// TODO: 스토어 체크 확인해보기
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
+	history, err := r.store.GetBersSwapHistory(context.Background(), m.SenderTxHash)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			r.c.Logger.Error().Err(err).Msgf("cannot get swab history from remote store. hash:%s", m.SenderTxHash)
+			return err
+		}
+	}
+
+	if history.SenderTxHash != "" {
+		r.c.Logger.Warn().Msgf("swap already excecuted, ignore deposit message. sender tx: %s", history.SenderTxHash)
+		return nil
+	}
+
 	txHash, err := r.erc20Contract.Transfer(m.Receiver, m.Amount, transaction.TransactOptions{GasLimit: r.c.GasLimit.Uint64()})
 	if err != nil {
 		r.c.Logger.Error().Err(err).Any("Address", m.Receiver.Hex()).Any("Value", m.Amount.Uint64()).Msg("transaction submit failed.")
@@ -138,5 +159,6 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 }
 
 func (r *ReceiverChain) Stop() {
+	r.store.Stop()
 	r.stop <- struct{}{}
 }

@@ -15,7 +15,7 @@ ctest:
 	cd contract && npx hardhat test
 
 test:
-	cd bridge/bridge && go test -run TestDeposit -timeout=2m -v
+	go test ./... -timeout=3m -v -short -cover
 
 sqlc:
 	sqlc generate

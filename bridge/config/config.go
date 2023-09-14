@@ -15,10 +15,10 @@ import (
 )
 
 type Config struct {
-	ChainConfig    []RawChainConfig `json:"chains"`
-	KeystorePath   string           `json:"keystorePath,omitempty"`
-	BlockStorePath string           `json:"blockStorePath"`
-	DBSource       string           `json:"dbSource"`
+	ChainConfig    []*RawChainConfig `json:"chains"`
+	KeystorePath   string            `json:"keystorePath,omitempty"`
+	BlockStorePath string            `json:"blockStorePath"`
+	DBSource       string            `json:"dbSource"`
 	IsLoaded       bool
 	Verbosity      zerolog.Level
 }
@@ -47,7 +47,7 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	if file := ctx.String(cmd.ConfigFileFlag.Name); file != "" {
 		path = file
 	}
-	err := loadConfig(path, cfg)
+	err := LoadConfig(path, cfg)
 	if err != nil {
 		log.Warn().Err(err).Msg("cannot parse json file")
 		return nil, err
@@ -85,7 +85,7 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	return cfg, nil
 }
 
-func loadConfig(file string, config *Config) error {
+func LoadConfig(file string, config *Config) error {
 	ext := filepath.Ext(file)
 	fp, err := filepath.Abs(file)
 	if err != nil {

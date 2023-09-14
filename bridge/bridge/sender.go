@@ -70,7 +70,7 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 		stop:               make(chan struct{}),
 	}
 
-	sc.setSenderBridgeContract(&cfg.ChainConfig[idx])
+	sc.setSenderBridgeContract(cfg.ChainConfig[idx])
 	return &sc
 }
 

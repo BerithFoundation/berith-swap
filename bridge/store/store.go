@@ -46,3 +46,7 @@ func (store *Store) execTx(ctx context.Context, fn func(*mariadb.Queries) error)
 
 	return tx.Commit()
 }
+
+func (store *Store) Stop() error {
+	return store.db.Close()
+}
