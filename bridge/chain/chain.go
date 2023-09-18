@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Chain은 블록체인에 대한 정보를 담고 있습니다.
 type Chain struct {
 	Name         string
 	Endpoint     string
@@ -22,6 +23,7 @@ type Chain struct {
 	Logger       zerolog.Logger
 }
 
+// NewChain는 config를 통해 Chain을 생성합니다.
 func NewChain(cfg *config.Config, idx int) (*Chain, error) {
 	chainCfg := cfg.ChainConfig[idx]
 

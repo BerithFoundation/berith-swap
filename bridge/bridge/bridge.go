@@ -14,11 +14,13 @@ const (
 	ReceiverIdx = 1
 )
 
+// Bridge는 SenderChain과 ReceiverChain을 생성하고 시작합니다.
 type Bridge struct {
 	sc *SenderChain
 	rc *ReceiverChain
 }
 
+// NewBridge는 SenderChain과 ReceiverChain을 생성합니다.
 func NewBridge(cfg *config.Config) *Bridge {
 	br := new(Bridge)
 
@@ -35,6 +37,7 @@ func NewBridge(cfg *config.Config) *Bridge {
 	return br
 }
 
+// Start는 SenderChain과 ReceiverChain을 시작합니다.
 func (b *Bridge) Start() error {
 	ch := make(chan error)
 	go b.sc.start(ch)
@@ -43,6 +46,7 @@ func (b *Bridge) Start() error {
 	return <-ch
 }
 
+// Stop는 SenderChain과 ReceiverChain을 종료합니다.
 func (b *Bridge) Stop() {
 	b.sc.Stop()
 	b.rc.Stop()

@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// NewLogger는 zerolog.Logger를 생성합니다.
 func NewLogger(v zerolog.Level, name string) zerolog.Logger {
 	out := zerolog.ConsoleWriter{
 		Out: os.Stdout,

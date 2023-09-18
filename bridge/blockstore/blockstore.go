@@ -7,19 +7,7 @@ import (
 	"path/filepath"
 )
 
-const PathPostfix = "berith-swap/bridge/blockstore"
-
-type Blockstorer interface {
-	StoreBlock(*big.Int) error
-}
-
-var _ Blockstorer = &EmptyStore{}
-var _ Blockstorer = &Blockstore{}
-
-// Dummy store for testing only
-type EmptyStore struct{}
-
-func (s *EmptyStore) StoreBlock(_ *big.Int) error { return nil }
+const PathPostfix = "berith-swap/blockstore"
 
 type Blockstore struct {
 	path      string

@@ -22,6 +22,7 @@ var (
 	DefaultBlockConfirmations = big.NewInt(10)
 )
 
+// SenderChain은 Bridge 컨트랙트를 모니터링하며 Deposit 이벤트가 감지되면 ReceiverChain으로 토큰 전송 메시지를 보냅니다.
 type SenderChain struct {
 	c                  *chain.Chain
 	msgChan            chan<- message.DepositMessage
@@ -32,6 +33,7 @@ type SenderChain struct {
 	stop               chan struct{}
 }
 
+// NewSenderChain는 SenderChain을 생성합니다.
 func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *SenderChain {
 	chain, err := chain.NewChain(cfg, idx)
 	if err != nil {
@@ -74,6 +76,7 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 	return &sc
 }
 
+// setSenderBridgeContract는 SenderChain의 BridgeContract를 설정합니다.
 func (s *SenderChain) setSenderBridgeContract(chainCfg *config.RawChainConfig) error {
 	if chainCfg.BridgeAddress == "" {
 		err := fmt.Errorf("sender chain dosen't have bridge contract address. Chain:%s, Idx:%d", s.c.Name, chainCfg.Idx)
@@ -95,11 +98,13 @@ func (s *SenderChain) setSenderBridgeContract(chainCfg *config.RawChainConfig) e
 	return nil
 }
 
+// start는 SenderChain을 시작합니다.
 func (s *SenderChain) start(ch chan error) {
 	ch <- s.pollBlocks()
 
 }
 
+// pollBlocks는 SenderChain의 블록을 폴링하며 Deposit 이벤트를 감지합니다.
 func (s *SenderChain) pollBlocks() error {
 	var currentBlock = s.startBlock
 	s.c.Logger.Info().Msgf("Polling Blocks.. current block:%s", currentBlock.String())
@@ -156,7 +161,7 @@ func (s *SenderChain) pollBlocks() error {
 	}
 }
 
-// getDepositEventsForBlock looks for the deposit event in the latest block
+// getDepositEventsForBlock는 블록에서 Deposit 이벤트를 탐색합니다.
 func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.DepositMessage, error) {
 	s.c.Logger.Debug().Any("block", latestBlock.String()).Msg("Querying block for deposit events")
 	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.bridgeContract.Contract.ContractAddress(), message.Deposit, latestBlock, latestBlock)
@@ -172,12 +177,6 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 			return nil, fmt.Errorf("error cannot get transaction by hash. hash:%s, err:%w", log.TxHash, err)
 		}
 		if !pending {
-			// signer := types.LatestSignerForChainID(tx.ChainId())
-			// sender, err := types.Sender(signer, tx)
-			// if err != nil {
-			// 	return nil, fmt.Errorf("error cannot get sender from transaction. err:%w", err)
-			// }
-
 			receiver := common.BytesToAddress(log.Topics[1].Bytes())
 			msg := message.NewDepositMessage(log.BlockNumber, receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)), log.TxHash.Hex())
 			msgs = append(msgs, msg)
@@ -186,6 +185,7 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 	return msgs, nil
 }
 
+// SendMsgs는 ReceiverChain으로 메시지를 전송합니다.
 func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
 	for _, msg := range msgs {
 		s.msgChan <- msg
@@ -193,6 +193,7 @@ func (s *SenderChain) SendMsgs(msgs []message.DepositMessage) {
 	}
 }
 
+// Stop는 SenderChain을 종료합니다.
 func (s *SenderChain) Stop() {
 	s.stop <- struct{}{}
 }

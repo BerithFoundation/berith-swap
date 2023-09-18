@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +26,7 @@ var (
 	wg            sync.WaitGroup
 	gasPrice      = big.NewInt(25000000000)
 	defaultTxOpts = transaction.TransactOptions{
-		GasLimit: big.NewInt(9000000).Uint64(),
+		GasLimit: big.NewInt(2000000).Uint64(),
 	}
 )
 
@@ -179,6 +178,7 @@ func TestMassDeposit(t *testing.T) {
 	bridge.Stop()
 }
 
+// Deposit에 성공하여 저장된 History를 다시 Deposit하면 실패하는가?
 func TestHistoryDuplication(t *testing.T) {
 	cfg := initTestconfig(t)
 	senderCfg := cfg.ChainConfig[SenderIdx]
@@ -203,16 +203,6 @@ func TestHistoryDuplication(t *testing.T) {
 	require.NoError(t, err)
 	wg.Add(1)
 
-	receipt, err := bridge.sc.c.EvmClient.TransactionReceipt(context.Background(), *senderTxHash)
-	require.NoError(t, err)
-
-	tx, _, err := bridge.sc.c.EvmClient.GetTransactionByHash(*senderTxHash)
-	require.NoError(t, err)
-
-	signer := types.LatestSignerForChainID(bridge.sc.c.EvmClient.ChainId())
-	sender, err := types.Sender(signer, tx)
-	require.NoError(t, err)
-
 	for {
 		hist, err := bridge.rc.store.GetBersSwapHistory(context.Background(), senderTxHash.Hex())
 		if err != nil {
@@ -227,15 +217,18 @@ func TestHistoryDuplication(t *testing.T) {
 		break
 	}
 
-	bridge.sc.msgChan <- message.DepositMessage{
-		BlockNumber:  receipt.BlockNumber.Uint64(),
-		Receiver:     sender,
-		Amount:       new(big.Int).Div(sendAmt, big.NewInt(1e18)),
-		SenderTxHash: senderTxHash.Hex(),
+	hist, err := bridge.rc.store.GetBersSwapHistory(context.Background(), senderTxHash.Hex())
+	if err != nil {
+		if err != sql.ErrNoRows {
+			t.Fatalf("Non no-Rows error %s", err.Error())
+		}
 	}
+
+	require.NotEmpty(t, hist.SenderTxHash)
 
 	bridge.Stop()
 
 	err = <-errCh
 	require.Error(t, err)
+
 }

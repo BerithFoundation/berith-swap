@@ -29,6 +29,7 @@ type ReceiverChain struct {
 	store         *store.Store
 }
 
+// NewReceiverChain는 ReceiverChain을 생성합니다.
 func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx int, bs *blockstore.Blockstore) *ReceiverChain {
 	chainCfg := cfg.ChainConfig[idx]
 
@@ -60,6 +61,7 @@ func NewReceiverChain(ch <-chan message.DepositMessage, cfg *config.Config, idx 
 	return &rc
 }
 
+// setReceiverErc20Contract는 receiver chain의 erc20 contract를 설정합니다.
 func (s *ReceiverChain) setReceiverErc20Contract(chainCfg *config.RawChainConfig) error {
 	if chainCfg.Erc20Address == "" {
 		err := fmt.Errorf("receiver chain dosen't have erc20 contract address. Chain:%s, Idx:%d", s.c.Name, chainCfg.Idx)
@@ -81,10 +83,12 @@ func (s *ReceiverChain) setReceiverErc20Contract(chainCfg *config.RawChainConfig
 	return nil
 }
 
+// start는 ReceiverChain을 시작합니다.
 func (r *ReceiverChain) start(ch chan error) {
 	ch <- r.listen()
 }
 
+// listen은 ReceiverChain의 메시지 채널을 수신하고 토큰을 전송합니다.
 func (r *ReceiverChain) listen() error {
 	for {
 		select {
@@ -107,7 +111,7 @@ func (r *ReceiverChain) listen() error {
 	}
 }
 
-// TODO: 스토어 체크 확인해보기
+// SendToken은 Deposit 메시지를 수신하고 토큰을 전송합니다.
 func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	history, err := r.store.GetBersSwapHistory(context.Background(), m.SenderTxHash)
 	if err != nil {
@@ -158,6 +162,7 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	return nil
 }
 
+// Stop는 ReceiverChain을 종료합니다.
 func (r *ReceiverChain) Stop() {
 	r.store.Stop()
 	r.stop <- struct{}{}

@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["--config=./run_test/config.json","--keystore=./run_test/keys","--password=./run_test/password","--blockstore=./run_test/blockstore","--verbosity=-1"]
+            "args": ["--config=./run_test/config.json","--keystore=./run_test/keys","--password=./run_test/password","--blockstore=./run_test/blockstore","--verbosity=-1","--load=false"]
         }
     ]
 }
