@@ -11,11 +11,14 @@ import (
 )
 
 var (
-	DefaultGasPrice = big.NewInt(25000000000)
+	KlaytnBaseFee = big.NewInt(25000000000) // 25 Gwei
+	BerithBaseFee = big.NewInt(0)
 )
 
+// InitializeTransactor는 gas price clinet와 함께 Transactor를 초기화한다.
+// baseFee + tip으로 지불할 총 gas fee의 제한을 GasPricerOpts에 저공하여 설정한다.
 func InitializeTransactor(
-	gasPrice *big.Int,
+	limitGP *big.Int,
 	txFabric transaction.TxFabric,
 	client *connection.EvmClient,
 ) (transaction.Transactor, error) {
@@ -23,7 +26,7 @@ func InitializeTransactor(
 
 	gasPricer := evmgaspricer.NewLondonGasPriceClient(
 		client,
-		&evmgaspricer.GasPricerOpts{UpperLimitFeePerGas: gasPrice},
+		&evmgaspricer.GasPricerOpts{UpperLimitFeePerGas: limitGP},
 	)
 	trans = transaction.NewSignAndSendTransactor(txFabric, gasPricer, client)
 
@@ -32,7 +35,7 @@ func InitializeTransactor(
 
 func InitErc20Contract(c *connection.EvmClient, erc20Addr string, logger *zerolog.Logger) (*ERC20Contract, error) {
 
-	t, err := InitializeTransactor(DefaultGasPrice, transaction.NewTransaction, c)
+	t, err := InitializeTransactor(KlaytnBaseFee, transaction.NewTransaction, c)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +44,7 @@ func InitErc20Contract(c *connection.EvmClient, erc20Addr string, logger *zerolo
 
 func IniBridgeContract(c *connection.EvmClient, bridgeAddr string, logger *zerolog.Logger) (*BridgeContract, error) {
 
-	t, err := InitializeTransactor(DefaultGasPrice, transaction.NewTransaction, c)
+	t, err := InitializeTransactor(BerithBaseFee, transaction.NewTransaction, c)
 	if err != nil {
 		return nil, err
 	}

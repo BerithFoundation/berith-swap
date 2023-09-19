@@ -120,7 +120,7 @@ func (h *headerNumber) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (c *EvmClient) LatestBlock() (*big.Int, error) {
+func (c *EvmClient) LatestBlockNumber() (*big.Int, error) {
 	var head *headerNumber
 	err := c.rpcClient.CallContext(context.Background(), &head, "eth_getBlockByNumber", toBlockNumArg(nil), false)
 	if err == nil && head == nil {
@@ -130,6 +130,23 @@ func (c *EvmClient) LatestBlock() (*big.Int, error) {
 		return nil, err
 	}
 	return head.Number, nil
+}
+
+func (c *EvmClient) LatestBlock() (*types.Block, error) {
+	var block *types.Block
+
+	block, err := c.Client.BlockByNumber(context.Background(), nil)
+	if err == nil && block == nil {
+		err = ethereum.NotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func (c *EvmClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+	return c.Client.SuggestGasPrice(ctx)
 }
 
 // PendingNonceAt returns the account nonce of the given account in the pending state.

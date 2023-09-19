@@ -26,7 +26,7 @@ func (gasPricer *StaticGasPriceDeterminant) SetOpts(opts *GasPricerOpts) {
 
 func (gasPricer *StaticGasPriceDeterminant) GasPrice(priority *uint8) ([]*big.Int, error) {
 	gp, err := gasPricer.client.SuggestGasPrice(context.TODO())
-	log.Debug().Msgf("Suggested GP %s", gp.String())
+	log.Info().Msgf("Suggested GP %s", gp.String())
 	if err != nil {
 		return nil, err
 	}

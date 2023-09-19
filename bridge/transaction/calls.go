@@ -10,8 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type TxFabric func(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrices []*big.Int, data []byte) (CommonTransaction, error)
-
 type ContractChecker interface {
 	CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error)
 }
@@ -35,6 +33,9 @@ type ClientDispatcher interface {
 	UnlockNonce()
 	UnsafeIncreaseNonce() error
 	From() common.Address
+	LatestBlockNumber() (*big.Int, error)
+	LatestBlock() (*types.Block, error)
+	SuggestGasPrice(context.Context) (*big.Int, error)
 }
 
 type ContractCallerDispatcher interface {

@@ -1,13 +1,13 @@
 package bridge
 
 import (
-	chain "berith-swap/bridge/chain"
 	"berith-swap/bridge/config"
 	"berith-swap/bridge/connection"
 	"berith-swap/bridge/contract"
 	"berith-swap/bridge/evmgaspricer"
 	"berith-swap/bridge/keypair"
 	"berith-swap/bridge/transaction"
+	"berith-swap/logger"
 	"os"
 	"testing"
 
@@ -64,7 +64,7 @@ func testNewBridgeContract(t *testing.T, chainCfg *config.RawChainConfig) (*cont
 	require.NoError(t, err)
 	require.NotNil(t, pk)
 	testKp := keypair.NewKeypairFromPrivateKey(pk)
-	testLogger := chain.NewLogger(zerolog.Level(-1), "tester")
+	testLogger := logger.NewLogger(zerolog.Level(-1), "tester")
 
 	client, err := connection.NewEvmClient(testKp, chainCfg.Endpoint, &testLogger)
 	require.NoError(t, err)

@@ -46,7 +46,7 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 		blockConfirmations = DefaultBlockConfirmations
 	}
 
-	startBlock, err := chain.EvmClient.LatestBlock()
+	startBlock, err := chain.EvmClient.LatestBlockNumber()
 	if err != nil {
 		chain.Logger.Error().Err(err).Msgf("cannot get latest block through evmclient.")
 		return nil
@@ -129,7 +129,7 @@ func (s *SenderChain) pollBlocks() error {
 			return err
 		}
 
-		latestBlock, err := s.c.EvmClient.LatestBlock()
+		latestBlock, err := s.c.EvmClient.LatestBlockNumber()
 		if err != nil {
 			s.c.Logger.Error().Any("block", currentBlock.String()).Err(err).Msg("Unable to get latest block")
 			retry--

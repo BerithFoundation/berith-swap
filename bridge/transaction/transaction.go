@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+type TxFabric func(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrices []*big.Int, data []byte) (CommonTransaction, error)
+
 type CommonTransaction interface {
 	Hash() common.Hash
 	RawWithSignature(signer keypair.Signer, domainID *big.Int) ([]byte, error)
@@ -38,6 +40,8 @@ func (a *TX) RawWithSignature(signer keypair.Signer, chainID *big.Int) ([]byte, 
 	return data, nil
 }
 
+// gasPrices 배열을 인자로 받는 이유는
+// basefee를 지원하는 chain의 경우 estimateGas의 결과인 gasprice가 tip과 tip+basefee 두 결과가 담긴 배열로 반환되기 때문.
 func NewTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrices []*big.Int, data []byte) (CommonTransaction, error) {
 	if len(gasPrices) > 1 {
 		return newDynamicFeeTransaction(nonce, to, amount, gasLimit, gasPrices[0], gasPrices[1], data), nil
@@ -50,8 +54,8 @@ func newDynamicFeeTransaction(nonce uint64, to *common.Address, amount *big.Int,
 	tx := types.NewTx(&types.DynamicFeeTx{
 		Nonce:     nonce,
 		To:        to,
-		GasFeeCap: gasFeeCap,
-		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap, // 총 gas fee 지불 상한선
+		GasTipCap: gasTipCap, // tip 상한선
 		Gas:       gasLimit,
 		Value:     amount,
 		Data:      data,

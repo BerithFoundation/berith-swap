@@ -6,6 +6,7 @@ import (
 	"berith-swap/bridge/keypair"
 	"berith-swap/bridge/transaction"
 	"berith-swap/bridge/util"
+	"berith-swap/logger"
 	"fmt"
 	"math/big"
 
@@ -27,7 +28,7 @@ type Chain struct {
 func NewChain(cfg *config.Config, idx int) (*Chain, error) {
 	chainCfg := cfg.ChainConfig[idx]
 
-	logger := NewLogger(cfg.Verbosity, chainCfg.Name)
+	logger := logger.NewLogger(cfg.Verbosity, chainCfg.Name)
 
 	kp, err := keypair.GenerateKeyPair(chainCfg.Owner, cfg.KeystorePath, chainCfg.Password)
 	if err != nil {
