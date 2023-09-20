@@ -6,24 +6,72 @@ import (
 	"berith-swap/bridge/keypair"
 	"berith-swap/bridge/transaction"
 	"berith-swap/logger"
+	"crypto/rand"
 	"math/big"
 	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+)
+
+var ks *keystore.KeyStore
+
+const (
+	testKeyDir  = "./testkey"
+	testAccount = "a52438aefe8932786f260882a8867afa3b09165f"
+	testPW      = "0000"
+	configDir   = "../../run_test/"
+	SenderIdx   = 0
+	ReceiverIdx = 1
 )
 
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-const (
-	configDir   = "../../run_test/"
-	SenderIdx   = 0
-	ReceiverIdx = 1
-)
+func makeTestEthKeystore(dir string) *keystore.KeyStore {
+	return keystore.NewKeyStore(dir, keystore.StandardScryptN, keystore.StandardScryptP)
+}
+
+func testGenerateKeypair(t *testing.T) *keypair.Keypair {
+	var testBytes = make([]byte, 32)
+
+	_, err := rand.Read(testBytes)
+	require.NoError(t, err)
+
+	ks := getTestKeyStore(t)
+	acc, err := ks.NewAccount(testPW)
+	require.NoError(t, err)
+	require.NotEmpty(t, acc)
+
+	kp, err := keypair.GenerateKeyPair(acc.Address.Hex(), testKeyDir, testPW)
+	require.NoError(t, err)
+	require.NotNil(t, kp)
+	return kp
+}
+
+func getTestKeyStore(t *testing.T) *keystore.KeyStore {
+	if ks == nil {
+
+		if _, err := os.Stat(testKeyDir); os.IsNotExist(err) {
+			err := os.MkdirAll(testKeyDir, 0700)
+			require.NoError(t, err)
+		}
+
+		ks = makeTestEthKeystore(testKeyDir)
+	}
+	return ks
+}
+
+func removeTestKeyStore(t *testing.T) {
+	if _, err := os.Stat(testKeyDir); os.IsExist(err) {
+		err := os.RemoveAll(testKeyDir)
+		require.NoError(t, err)
+	}
+}
 
 func initTestconfig(t *testing.T) *config.Config {
 	lines, err := config.ParsePasswordFile(configDir + "password")
@@ -52,27 +100,24 @@ func initTestconfig(t *testing.T) *config.Config {
 	return cfg
 }
 
-func newTestBridgeContract(t *testing.T, limitGP *big.Int) *BridgeContract {
+func newTestSwapContract(t *testing.T, kp *keypair.Keypair) *SwapContract {
 	cfg := initTestconfig(t)
 	chainCfg := cfg.ChainConfig[SenderIdx]
 
 	logger := logger.NewLogger(cfg.Verbosity, chainCfg.Name)
 
-	kp, err := keypair.GenerateKeyPair(chainCfg.Owner, cfg.KeystorePath, chainCfg.Password)
-	require.NoError(t, err)
-
 	client, err := connection.NewEvmClient(kp, chainCfg.Endpoint, &logger)
 	require.NoError(t, err)
 
-	bridgeAddr := common.HexToAddress(chainCfg.BridgeAddress)
+	bridgeAddr := common.HexToAddress(chainCfg.SwapAddress)
 
-	tran, err := InitializeTransactor(limitGP, transaction.NewTransaction, client)
+	tran, err := InitializeTransactor(BerithGasPrice, transaction.NewTransaction, client)
 	require.NoError(t, err)
 
-	return NewBridgeContract(client, bridgeAddr, tran, &logger)
+	return NewSwapContract(client, bridgeAddr, tran, &logger)
 }
 
-func newTestERC20Contract(t *testing.T, limitGP *big.Int) *ERC20Contract {
+func newTestERC20Contract(t *testing.T, gasPayLimit *big.Int) *ERC20Contract {
 	cfg := initTestconfig(t)
 	chainCfg := cfg.ChainConfig[ReceiverIdx]
 
@@ -84,10 +129,10 @@ func newTestERC20Contract(t *testing.T, limitGP *big.Int) *ERC20Contract {
 	client, err := connection.NewEvmClient(kp, chainCfg.Endpoint, &logger)
 	require.NoError(t, err)
 
-	bridgeAddr := common.HexToAddress(chainCfg.BridgeAddress)
+	erc20Addr := common.HexToAddress(chainCfg.Erc20Address)
 
-	tran, err := InitializeTransactor(limitGP, transaction.NewTransaction, client)
+	tran, err := InitializeTransactor(gasPayLimit, transaction.NewTransaction, client)
 	require.NoError(t, err)
 
-	return NewERC20Contract(client, bridgeAddr, tran, &logger)
+	return NewERC20Contract(client, erc20Addr, tran, &logger)
 }

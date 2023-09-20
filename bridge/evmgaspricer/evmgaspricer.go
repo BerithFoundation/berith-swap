@@ -74,8 +74,8 @@ func (gasPricer *LondonGasPriceDeterminant) estimateGasLondon(baseFee *big.Int) 
 	// gaspricer에 설정된 최대 가스 지불 제한량보다 maxFeePerGas이 더 크면
 	// 설정된 제한량에서 base fee를 뺀값을 maxPriorityFeePerGas로 재설정
 	if gasPricer.opts != nil && gasPricer.opts.UpperLimitFeePerGas != nil && maxFeePerGas.Cmp(gasPricer.opts.UpperLimitFeePerGas) == 1 {
-		maxPriorityFeePerGas.Sub(gasPricer.opts.UpperLimitFeePerGas, baseFee)
-		maxFeePerGas = gasPricer.opts.UpperLimitFeePerGas
+		maxPriorityFeePerGas.Sub(gasPricer.opts.UpperLimitFeePerGas, baseFee) // basefee가 30이고 UpperLimitFeePerGas가 35면 maxPriorityFeePerGas는 5로 재설정
+		maxFeePerGas = gasPricer.opts.UpperLimitFeePerGas                     // basefee는 30이고, maxPriorityFeePerGas를 5로 설정해 주었기 때문에 maxFeePerGas는 초기 설정대로 35
 	}
 	return maxPriorityFeePerGas, maxFeePerGas, nil
 }

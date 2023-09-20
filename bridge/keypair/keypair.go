@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	secp256k1 "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type Signer interface {
@@ -48,12 +48,12 @@ func NewKeypairFromPrivateKey(priv *ecdsa.PrivateKey) *Keypair {
 
 // Encode dumps the private key as bytes
 func (kp *Keypair) Encode() []byte {
-	return secp256k1.FromECDSA(kp.private)
+	return crypto.FromECDSA(kp.private)
 }
 
 // Decode initializes the keypair using the input
 func (kp *Keypair) Decode(in []byte) error {
-	key, err := secp256k1.ToECDSA(in)
+	key, err := crypto.ToECDSA(in)
 	if err != nil {
 		return err
 	}
@@ -66,17 +66,17 @@ func (kp *Keypair) Decode(in []byte) error {
 
 // Address returns the Ethereum address format
 func (kp *Keypair) Address() string {
-	return secp256k1.PubkeyToAddress(*kp.public).String()
+	return crypto.PubkeyToAddress(*kp.public).String()
 }
 
 // CommonAddress returns the Ethereum address in the common.Address Format
 func (kp *Keypair) CommonAddress() common.Address {
-	return secp256k1.PubkeyToAddress(*kp.public)
+	return crypto.PubkeyToAddress(*kp.public)
 }
 
 // PublicKey returns the public key hex encoded
 func (kp *Keypair) PublicKey() string {
-	return hexutil.Encode(secp256k1.CompressPubkey(kp.public))
+	return hexutil.Encode(crypto.CompressPubkey(kp.public))
 }
 
 // PrivateKey returns the keypair's private key
@@ -87,5 +87,5 @@ func (kp *Keypair) PrivateKey() *ecdsa.PrivateKey {
 // Sign calculates an ECDSA signature.
 // The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (kp *Keypair) Sign(digestHash []byte) ([]byte, error) {
-	return secp256k1.Sign(digestHash, kp.private)
+	return crypto.Sign(digestHash, kp.private)
 }

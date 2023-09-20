@@ -45,6 +45,30 @@ func (c *ERC20Contract) GetBalance(address common.Address) (*big.Int, error) {
 	return b, nil
 }
 
+func (c *ERC20Contract) GetPauseState() (*bool, error) {
+	c.Logger.Debug().Msg("Getting pause state")
+	res, err := c.CallContract("paused")
+	if err != nil {
+		return nil, err
+	}
+	b := abi.ConvertType(res[0], new(bool)).(*bool)
+	return b, nil
+}
+
+func (c *ERC20Contract) Pause(
+	opts transaction.TransactOptions,
+) (*common.Hash, error) {
+	c.Logger.Debug().Msg("pause erc20 contract")
+	return c.ExecuteTransaction("pause", opts)
+}
+
+func (c *ERC20Contract) UnPause(
+	opts transaction.TransactOptions,
+) (*common.Hash, error) {
+	c.Logger.Debug().Msg("unpause erc20 contract")
+	return c.ExecuteTransaction("unpause", opts)
+}
+
 func (c *ERC20Contract) Transfer(
 	to common.Address,
 	amount *big.Int,

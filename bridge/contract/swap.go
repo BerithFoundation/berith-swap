@@ -12,36 +12,36 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type BridgeContract struct {
+type SwapContract struct {
 	Contract
 	Logger *zerolog.Logger
 }
 
-func NewBridgeContract(
+func NewSwapContract(
 	client transaction.ContractCallerDispatcher,
 	BridgeContractAddress common.Address,
 	transactor transaction.Transactor,
 	logger *zerolog.Logger,
-) *BridgeContract {
+) *SwapContract {
 	a, _ := abi.JSON(strings.NewReader(consts.BerithSwapABI))
 	b := common.FromHex(consts.BerithSwapBin)
-	return &BridgeContract{
+	return &SwapContract{
 		Contract: NewContract(BridgeContractAddress, a, b, client, transactor, logger),
 		Logger:   logger,
 	}
 }
 
-func (b *BridgeContract) WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt, error) {
+func (b *SwapContract) WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt, error) {
 	return b.Contract.client.WaitAndReturnTxReceipt(*hash)
 }
 
-func (b *BridgeContract) Deposit(receiver common.Address,
+func (b *SwapContract) Deposit(receiver common.Address,
 	opts transaction.TransactOptions) (*common.Hash, error) {
 	b.Logger.Debug().Msgf("deposit %s BERS, receiver:%s", new(big.Int).Div(opts.Value, big.NewInt(1e18)).String(), receiver.Hex())
 	return b.ExecuteTransaction("deposit", opts, receiver)
 }
 
-func (b *BridgeContract) GetBalance(address common.Address) (*big.Int, error) {
+func (b *SwapContract) GetBalance(address common.Address) (*big.Int, error) {
 	b.Logger.Debug().Msgf("Getting balance for %s", address.String())
 	res, err := b.CallContract("balanceOf", address)
 	if err != nil {
@@ -51,11 +51,9 @@ func (b *BridgeContract) GetBalance(address common.Address) (*big.Int, error) {
 	return abi, nil
 }
 
-func (b *BridgeContract) TransferFunds(
-	to common.Address,
-	amount *big.Int,
+func (b *SwapContract) TransferFunds(
 	opts transaction.TransactOptions,
 ) (*common.Hash, error) {
-	b.Logger.Debug().Msgf("transfer %s tokens to %s", amount.String(), to.String())
-	return b.ExecuteTransaction("transferFunds", opts, to, amount)
+	b.Logger.Debug().Msg("withdraw all bers from swap contract")
+	return b.ExecuteTransaction("transferFunds", opts)
 }

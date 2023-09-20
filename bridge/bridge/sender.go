@@ -28,7 +28,7 @@ type SenderChain struct {
 	msgChan            chan<- message.DepositMessage
 	blockStore         *blockstore.Blockstore
 	blockConfirmations *big.Int
-	bridgeContract     *contract.BridgeContract
+	swapContract       *contract.SwapContract
 	startBlock         *big.Int
 	stop               chan struct{}
 }
@@ -78,23 +78,23 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 
 // setSenderBridgeContract는 SenderChain의 BridgeContract를 설정합니다.
 func (s *SenderChain) setSenderBridgeContract(chainCfg *config.RawChainConfig) error {
-	if chainCfg.BridgeAddress == "" {
+	if chainCfg.SwapAddress == "" {
 		err := fmt.Errorf("sender chain dosen't have bridge contract address. Chain:%s, Idx:%d", s.c.Name, chainCfg.Idx)
 		s.c.Logger.Error().Err(err).Msg("check config.json")
 		return err
 	}
 
-	err := s.c.EvmClient.EnsureHasBytecode(common.HexToAddress(chainCfg.BridgeAddress))
+	err := s.c.EvmClient.EnsureHasBytecode(common.HexToAddress(chainCfg.SwapAddress))
 	if err != nil {
 		s.c.Logger.Panic().Err(err).Msgf("contract dosen't exist this chain url:%s", s.c.Endpoint)
 	}
 
-	c, err := contract.IniBridgeContract(s.c.EvmClient, chainCfg.BridgeAddress, &s.c.Logger)
+	c, err := contract.IniBridgeContract(s.c.EvmClient, chainCfg.SwapAddress, &s.c.Logger)
 	if err != nil {
 		s.c.Logger.Error().Err(err).Msg("cannot init bridge contract of sender chain.")
 		return err
 	}
-	s.bridgeContract = c
+	s.swapContract = c
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (s *SenderChain) pollBlocks() error {
 // getDepositEventsForBlock는 블록에서 Deposit 이벤트를 탐색합니다.
 func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.DepositMessage, error) {
 	s.c.Logger.Debug().Any("block", latestBlock.String()).Msg("Querying block for deposit events")
-	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.bridgeContract.Contract.ContractAddress(), message.Deposit, latestBlock, latestBlock)
+	logs, err := s.c.EvmClient.FetchEventLogs(context.Background(), *s.swapContract.Contract.ContractAddress(), message.Deposit, latestBlock, latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Filter Logs: %w", err)
 	}

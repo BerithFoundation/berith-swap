@@ -21,12 +21,10 @@ func makeTestEthKeystore(dir string) *keystore.KeyStore {
 
 func getTestKeyStore(t *testing.T) *keystore.KeyStore {
 	if ks == nil {
-
 		if _, err := os.Stat(testKeyDir); os.IsNotExist(err) {
 			err := os.MkdirAll(testKeyDir, 0700)
 			require.NoError(t, err)
 		}
-
 		ks = makeTestEthKeystore(testKeyDir)
 	}
 	return ks

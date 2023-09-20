@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testNewBridgeContract(t *testing.T, chainCfg *config.RawChainConfig) (*contract.BridgeContract, common.Address) {
+func testNewBridgeContract(t *testing.T, chainCfg *config.RawChainConfig) (*contract.SwapContract, common.Address) {
 	pk, err := crypto.HexToECDSA(testPrivKey)
 	require.NoError(t, err)
 	require.NotNil(t, pk)
@@ -76,5 +76,5 @@ func testNewBridgeContract(t *testing.T, chainCfg *config.RawChainConfig) (*cont
 
 	trans := transaction.NewSignAndSendTransactor(transaction.NewTransaction, gasPricer, client)
 
-	return contract.NewBridgeContract(client, common.HexToAddress(chainCfg.BridgeAddress), trans, &testLogger), client.From()
+	return contract.NewSwapContract(client, common.HexToAddress(chainCfg.SwapAddress), trans, &testLogger), client.From()
 }

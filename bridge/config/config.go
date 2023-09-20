@@ -28,7 +28,7 @@ type RawChainConfig struct {
 	Name               string `json:"name"`
 	Endpoint           string `json:"endpoint"`
 	Owner              string `json:"owner"`
-	BridgeAddress      string `json:"bridgeAddress"`
+	SwapAddress        string `json:"swapAddress"`
 	Erc20Address       string `json:"erc20Address"`
 	GasLimit           string `json:"gasLimit"`
 	MaxGasPrice        string `json:"maxGasPrice"`
