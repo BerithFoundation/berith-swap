@@ -19,7 +19,10 @@ import (
 )
 
 const (
-	configDir = "../../run_test/"
+	testKeyDir  = "./testkey"
+	testAccount = "a52438aefe8932786f260882a8867afa3b09165f"
+	testPW      = "0000"
+	configDir   = "../../run_test/"
 )
 
 func initTestconfig(t *testing.T) *config.Config {

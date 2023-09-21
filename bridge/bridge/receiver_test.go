@@ -2,10 +2,13 @@ package bridge
 
 import (
 	"berith-swap/bridge/blockstore"
+	"berith-swap/bridge/keypair"
 	"berith-swap/bridge/message"
 	"berith-swap/bridge/store/mariadb"
 	"context"
 	"crypto/rand"
+	"database/sql"
+	"math/big"
 	"testing"
 	"time"
 
@@ -36,18 +39,28 @@ func TestStoreHistory(t *testing.T) {
 	require.NoError(t, err)
 
 	senderTx := hexutil.Encode(txBytes)
-	err = rc.store.CreateSwapHistoryTx(context.Background(), mariadb.CreateBersSwapHistoryParams{
-		SenderTxHash:   senderTx,
-		ReceiverTxHash: "receiverTx",
-		Amount:         1,
-	})
-
+	receiver, err := keypair.GenerateKeyPair(testAccount, testKeyDir, testPW)
 	require.NoError(t, err)
 
-	hist, err := rc.store.GetBersSwapHistory(context.Background(), senderTx)
+	ch <- message.DepositMessage{
+		BlockNumber:  big.NewInt(1).Uint64(),
+		Amount:       big.NewInt(1),
+		Receiver:     receiver.CommonAddress(),
+		SenderTxHash: senderTx,
+	}
+
+	var hist mariadb.BersSwapHist
+	for i := 0; i < 10; i++ {
+		hist, err = rc.store.GetBersSwapHistory(context.Background(), senderTx)
+		if err == sql.ErrNoRows {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		break
+	}
 	require.NoError(t, err)
 	require.Equal(t, hist.Amount, int64(1))
-	require.Equal(t, hist.ReceiverTxHash, "receiverTx")
+	require.NotEmpty(t, hist.ReceiverTxHash)
 	require.Equal(t, hist.SenderTxHash, senderTx)
-	require.WithinDuration(t, hist.CreatedAt.Time, time.Now(), time.Second*5)
+	require.WithinDuration(t, hist.CreatedAt.Time, time.Now().UTC(), time.Second*5)
 }
