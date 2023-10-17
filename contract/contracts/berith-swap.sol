@@ -9,17 +9,7 @@ contract BerithSwap is Ownable {
 
     event Deposit(uint64 depositNonce, address indexed recipient);
 
-    modifier olnyInteger(uint256 value) {
-        require(
-            value % 1 ether == 0,
-            "Only the amount in [ ber ] units can be sended"
-        );
-        _;
-    }
-
-    function deposit(
-        address receipientAddress
-    ) external payable olnyInteger(msg.value) {
+    function deposit(address receipientAddress) external payable {
         address rec;
 
         if (receipientAddress == address(0)) {
@@ -30,10 +20,6 @@ contract BerithSwap is Ownable {
 
         depositNonce++;
         emit Deposit(depositNonce, rec);
-    }
-
-    function weiToEther(uint256 weiAmount) private pure returns (uint256) {
-        return weiAmount / 1 ether;
     }
 
     function transferFunds() external onlyOwner {

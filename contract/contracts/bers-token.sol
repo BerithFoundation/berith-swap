@@ -11,7 +11,7 @@ contract BersToken is Ownable, ERC20Pausable {
     }
 
     function decimals() public view virtual override returns (uint8) {
-        return 0;
+        return 18;
     }
 
     function pause() public onlyOwner {

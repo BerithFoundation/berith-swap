@@ -81,25 +81,25 @@ func TestInvalidReceiver(t *testing.T) {
 		},
 	}
 
-	before, err := bridge.rc.erc20Contract.GetBalance(owner)
-	require.NoError(t, err)
-
-	sendAmt := big.NewInt(0).Mul(big.NewInt(1), big.NewInt(1e18))
+	sendAmt := big.NewInt(1.12e18)
 
 	defaultTxOpts.Value = sendAmt
 
+	go bridge.Start()
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := bridgeCt.Deposit(tc.address, defaultTxOpts)
+			before, err := bridge.rc.erc20Contract.GetBalance(owner)
 			require.NoError(t, err)
 
-			go bridge.Start()
+			_, err = bridgeCt.Deposit(tc.address, defaultTxOpts)
+			require.NoError(t, err)
 
 			checkBalance(t, bridge.rc.erc20Contract, before, sendAmt, owner)
 
-			bridge.Stop()
 		})
 	}
+	bridge.Stop()
 }
 
 func checkBalance(t *testing.T, erc20 *contract.ERC20Contract, before, amt *big.Int, addr common.Address) bool {
@@ -107,9 +107,8 @@ func checkBalance(t *testing.T, erc20 *contract.ERC20Contract, before, amt *big.
 	for retry > 0 {
 		after, err := erc20.GetBalance(addr)
 		require.NoError(t, err)
-		amtEther := new(big.Int).Div(amt, big.NewInt(1e18))
 
-		check := new(big.Int).Add(before, amtEther).Cmp(after) == 0
+		check := new(big.Int).Add(before, amt).Cmp(after) == 0
 		if check {
 			erc20.Logger.Debug().Msg("balance checking passed")
 			return true

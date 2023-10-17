@@ -178,7 +178,7 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 		}
 		if !pending {
 			receiver := common.BytesToAddress(log.Topics[1].Bytes())
-			msg := message.NewDepositMessage(log.BlockNumber, receiver, big.NewInt(0).Div(tx.Value(), big.NewInt(1e18)), log.TxHash.Hex())
+			msg := message.NewDepositMessage(log.BlockNumber, receiver, tx.Value(), log.TxHash.Hex())
 			msgs = append(msgs, msg)
 		}
 	}

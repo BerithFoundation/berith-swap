@@ -7,7 +7,8 @@
 const hre = require("hardhat");
 
 async function main() {
-  const totalSupply = 1000000000000;
+  hre.ethers;
+  const totalSupply = BigInt(10000000000 * 1e18).toString();
 
   const token = await hre.ethers.deployContract("BersToken", [totalSupply]);
 
