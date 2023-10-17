@@ -37,7 +37,8 @@ func (b *SwapContract) WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt
 
 func (b *SwapContract) Deposit(receiver common.Address,
 	opts transaction.TransactOptions) (*common.Hash, error) {
-	b.Logger.Debug().Msgf("deposit %s BERS, receiver:%s", new(big.Int).Div(opts.Value, big.NewInt(1e18)).String(), receiver.Hex())
+	valueFloat, _ := new(big.Float).SetString(opts.Value.String())
+	b.Logger.Debug().Msgf("deposit %s BERS, receiver:%s", new(big.Float).Quo(valueFloat, new(big.Float).SetUint64(1e18)).String(), receiver.Hex())
 	return b.ExecuteTransaction("deposit", opts, receiver)
 }
 

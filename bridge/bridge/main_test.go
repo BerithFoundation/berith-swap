@@ -36,7 +36,7 @@ func initTestconfig(t *testing.T) *config.Config {
 	for _, chain := range cfg.ChainConfig {
 		switch chain.Idx {
 		case SenderIdx:
-			chain.Name = "berith-test"
+			chain.Name = "berith"
 			chain.Password = lines[SenderIdx]
 		case ReceiverIdx:
 			chain.Name = "klaytn-test"

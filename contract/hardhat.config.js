@@ -15,6 +15,12 @@ module.exports = {
         "56a7a32def4a15c0187e8a076baf4c76db60bbf9ad59b8396d0b2174f9d5533e",
       ],
     },
+    berithMainnet: {
+      url: "https://bers.berith.co/",
+      accounts: [
+        "56a7a32def4a15c0187e8a076baf4c76db60bbf9ad59b8396d0b2174f9d5533e",
+      ],
+    },
     klaytnTestnet: {
       url: "https://api.baobab.klaytn.net:8651",
       accounts: [

@@ -1,0 +1,417 @@
+@startuml
+namespace blockstore {
+    class Blockstore << (S,Aquamarine) >> {
+        - path string
+        - fullPath string
+        - chainName string
+
+        + StoreBlock(block *big.Int) error
+        + TryLoadLatestBlock() (*big.Int, error)
+        + FullPath() string
+
+    }
+}
+
+
+namespace bridge {
+    class Bridge << (S,Aquamarine) >> {
+        - sc *SenderChain
+        - rc *ReceiverChain
+
+        + Start() error
+        + Stop() 
+
+    }
+    class ReceiverChain << (S,Aquamarine) >> {
+        - c *chain.Chain
+        - msgChan <font color=blue>chan</font> message.DepositMessage
+        - erc20Contract *contract.ERC20Contract
+        - blockStore *blockstore.Blockstore
+        - stop <font color=blue>chan</font> <font color=blue>struct</font>{}
+        - store *store.Store
+
+        - setReceiverErc20Contract(chainCfg *config.RawChainConfig) error
+        - start(ch <font color=blue>chan</font> error) 
+        - listen() error
+
+        + SendToken(m message.DepositMessage) error
+        + Stop() 
+
+    }
+    class SenderChain << (S,Aquamarine) >> {
+        - c *chain.Chain
+        - msgChan <font color=blue>chan</font> message.DepositMessage
+        - blockStore *blockstore.Blockstore
+        - blockConfirmations *big.Int
+        - swapContract *contract.SwapContract
+        - startBlock *big.Int
+        - stop <font color=blue>chan</font> <font color=blue>struct</font>{}
+
+        - setSenderBridgeContract(chainCfg *config.RawChainConfig) error
+        - start(ch <font color=blue>chan</font> error) 
+        - pollBlocks() error
+        - getDepositEventsForBlock(latestBlock *big.Int) ([]message.DepositMessage, error)
+
+        + SendMsgs(msgs []message.DepositMessage) 
+        + Stop() 
+
+    }
+}
+
+
+namespace chain {
+    class Chain << (S,Aquamarine) >> {
+        + Name string
+        + Endpoint string
+        + TransactOpts *transaction.TransactOptions
+        + GasLimit *big.Int
+        + GasPrice *big.Int
+        + EvmClient *connection.EvmClient
+        + Logger zerolog.Logger
+
+    }
+}
+
+
+namespace config {
+    class Config << (S,Aquamarine) >> {
+        + ChainConfig []*RawChainConfig
+        + KeystorePath string
+        + BlockStorePath string
+        + DBSource string
+        + IsLoaded bool
+        + Verbosity zerolog.Level
+
+    }
+    class RawChainConfig << (S,Aquamarine) >> {
+        + Idx int8
+        + Name string
+        + Endpoint string
+        + Owner string
+        + SwapAddress string
+        + Erc20Address string
+        + GasLimit string
+        + MaxGasPrice string
+        + BlockConfirmations string
+        + Password string
+
+    }
+}
+
+
+namespace connection {
+    class EvmClient << (S,Aquamarine) >> {
+        - rpcClient *rpc.Client
+        - chainId *big.Int
+        - signer keypair.Signer
+        - nonce *big.Int
+        - nonceLock sync.Mutex
+        - logger *zerolog.Logger
+
+        + LockNonce() 
+        + UnlockNonce() 
+        + UnsafeNonce() (*big.Int, error)
+        + UnsafeIncreaseNonce() error
+        + LatestBlockNumber() (*big.Int, error)
+        + LatestBlock() (*types.Block, error)
+        + SuggestGasPrice(ctx context.Context) (*big.Int, error)
+        + PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+        + WaitAndReturnTxReceipt(h common.Hash) (*types.Receipt, error)
+        + GetTransactionByHash(h common.Hash) (*types.Transaction, bool, error)
+        + FetchEventLogs(ctx context.Context, contractAddress common.Address, methodSig message.EventSig, startBlock *big.Int, endBlock *big.Int) ([]types.Log, error)
+        + SendRawTransaction(ctx context.Context, tx []byte) ([]byte, error)
+        + CallContract(ctx context.Context, callArgs <font color=blue>map</font>[string]<font color=blue>interface</font>{}, blockNumber *big.Int) ([]byte, error)
+        + CallContext(ctx context.Context, target <font color=blue>interface</font>{}, rpcMethod string, args ...<font color=blue>interface</font>{}) error
+        + PendingCallContract(ctx context.Context, callArgs <font color=blue>map</font>[string]<font color=blue>interface</font>{}) ([]byte, error)
+        + From() common.Address
+        + SignAndSendTransaction(ctx context.Context, tx transaction.CommonTransaction) (common.Hash, error)
+        + BaseFee() (*big.Int, error)
+        + ChainId() *big.Int
+        + EnsureHasBytecode(addr common.Address) error
+
+    }
+    class headerNumber << (S,Aquamarine) >> {
+        + Number *big.Int
+
+        + UnmarshalJSON(input []byte) error
+
+    }
+}
+"ethclient.Client" *-- "connection.EvmClient"
+
+"evmgaspricer.GasPriceClient" <|-- "connection.EvmClient"
+"transaction.ContractCaller" <|-- "connection.EvmClient"
+
+namespace contract {
+    class Contract << (S,Aquamarine) >> {
+        - contractAddress common.Address
+        - bytecode []byte
+        - client transaction.ContractCallerDispatcher
+
+        + ABI abi.ABI
+        + Logger *zerolog.Logger
+
+        + ContractAddress() *common.Address
+        + PackMethod(method string, args ...<font color=blue>interface</font>{}) ([]byte, error)
+        + UnpackResult(method string, output []byte) ([]<font color=blue>interface</font>{}, error)
+        + ExecuteTransaction(method string, opts transaction.TransactOptions, args ...<font color=blue>interface</font>{}) (*common.Hash, error)
+        + CallContract(method string, args ...<font color=blue>interface</font>{}) ([]<font color=blue>interface</font>{}, error)
+
+    }
+    class ERC20Contract << (S,Aquamarine) >> {
+        + Logger *zerolog.Logger
+
+        + WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt, error)
+        + GetBalance(address common.Address) (*big.Int, error)
+        + GetPauseState() (*bool, error)
+        + Pause(opts transaction.TransactOptions) (*common.Hash, error)
+        + UnPause(opts transaction.TransactOptions) (*common.Hash, error)
+        + Transfer(to common.Address, amount *big.Int, opts transaction.TransactOptions) (*common.Hash, error)
+
+    }
+    class SwapContract << (S,Aquamarine) >> {
+        + Logger *zerolog.Logger
+
+        + WaitAndReturnTxReceipt(hash *common.Hash) (*types.Receipt, error)
+        + Deposit(receiver common.Address, opts transaction.TransactOptions) (*common.Hash, error)
+        + GetBalance(address common.Address) (*big.Int, error)
+        + TransferFunds(opts transaction.TransactOptions) (*common.Hash, error)
+
+    }
+}
+"transaction.Transactor" *-- "contract.Contract"
+"contract.Contract" *-- "contract.ERC20Contract"
+"contract.Contract" *-- "contract.SwapContract"
+
+
+namespace evmgaspricer {
+    interface GasPriceClient  {
+        + SuggestGasPrice(ctx context.Context) (*big.Int, error)
+
+    }
+    class GasPricerOpts << (S,Aquamarine) >> {
+        + UpperLimitFeePerGas *big.Int
+        + GasPriceFactor *big.Float
+        + Args []<font color=blue>interface</font>{}
+
+    }
+    interface LondonGasClient  {
+        + BaseFee() (*big.Int, error)
+        + SuggestGasTipCap(ctx context.Context) (*big.Int, error)
+
+    }
+    class LondonGasPriceDeterminant << (S,Aquamarine) >> {
+        - client LondonGasClient
+        - opts *GasPricerOpts
+
+        - estimateGasLondon(baseFee *big.Int) (*big.Int, *big.Int, error)
+
+        + GasPrice(priority *uint8) ([]*big.Int, error)
+        + SetClient(client LondonGasClient) 
+        + SetOpts(opts *GasPricerOpts) 
+
+    }
+    class StaticGasPriceDeterminant << (S,Aquamarine) >> {
+        - client GasPriceClient
+        - opts *GasPricerOpts
+
+        + SetClient(client LondonGasClient) 
+        + SetOpts(opts *GasPricerOpts) 
+        + GasPrice(priority *uint8) ([]*big.Int, error)
+
+    }
+}
+"evmgaspricer.GasPriceClient" *-- "evmgaspricer.LondonGasClient"
+
+"transaction.GasPricer" <|-- "evmgaspricer.LondonGasPriceDeterminant"
+"transaction.GasPricer" <|-- "evmgaspricer.StaticGasPriceDeterminant"
+
+namespace keypair {
+    class Keypair << (S,Aquamarine) >> {
+        - public *ecdsa.PublicKey
+        - private *ecdsa.PrivateKey
+
+        + Encode() []byte
+        + Decode(in []byte) error
+        + Address() string
+        + CommonAddress() common.Address
+        + PublicKey() string
+        + PrivateKey() *ecdsa.PrivateKey
+        + Sign(digestHash []byte) ([]byte, error)
+
+    }
+    interface Signer  {
+        + CommonAddress() common.Address
+        + Sign(digestHash []byte) ([]byte, error)
+
+    }
+}
+
+"keypair.Signer" <|-- "keypair.Keypair"
+
+namespace mariadb {
+    class BersSwapHist << (S,Aquamarine) >> {
+        + SenderTxHash string
+        + ReceiverTxHash string
+        + Amount int64
+        + CreatedAt sql.NullTime
+
+    }
+    class CreateBersSwapHistoryParams << (S,Aquamarine) >> {
+        + SenderTxHash string
+        + ReceiverTxHash string
+        + Amount int64
+
+    }
+    interface DBTX  {
+        + ExecContext( context.Context,  string,  ...<font color=blue>interface</font>{}) (sql.Result, error)
+        + PrepareContext( context.Context,  string) (*sql.Stmt, error)
+        + QueryContext( context.Context,  string,  ...<font color=blue>interface</font>{}) (*sql.Rows, error)
+        + QueryRowContext( context.Context,  string,  ...<font color=blue>interface</font>{}) *sql.Row
+
+    }
+    interface Querier  {
+        + CreateBersSwapHistory(ctx context.Context, arg CreateBersSwapHistoryParams) (sql.Result, error)
+        + GetBersSwapHistory(ctx context.Context, senderTxHash string) (BersSwapHist, error)
+
+    }
+    class Queries << (S,Aquamarine) >> {
+        - db DBTX
+
+        + CreateBersSwapHistory(ctx context.Context, arg CreateBersSwapHistoryParams) (sql.Result, error)
+        + GetBersSwapHistory(ctx context.Context, senderTxHash string) (BersSwapHist, error)
+        + WithTx(tx *sql.Tx) *Queries
+
+    }
+}
+
+"mariadb.Querier" <|-- "mariadb.Queries"
+
+namespace message {
+    class DepositMessage << (S,Aquamarine) >> {
+        + BlockNumber uint64
+        + Receiver common.Address
+        + Amount *big.Int
+        + SenderTxHash string
+
+    }
+    class EventSig << (S,Aquamarine) >> {
+        + GetTopic() common.Hash
+
+    }
+    class message.EventSig << (T, #FF7700) >>  {
+    }
+}
+
+
+namespace store {
+    class Store << (S,Aquamarine) >> {
+        - db *sql.DB
+
+        - execTx(ctx context.Context, fn <font color=blue>func</font>(*mariadb.Queries) error) error
+
+        + Stop() error
+        + CreateSwapHistoryTx(ctx context.Context, arg mariadb.CreateBersSwapHistoryParams) error
+
+    }
+}
+"mariadb.Queries" *-- "store.Store"
+
+
+namespace transaction {
+    interface ClientDispatcher  {
+        + WaitAndReturnTxReceipt(h common.Hash) (*types.Receipt, error)
+        + SignAndSendTransaction(ctx context.Context, tx CommonTransaction) (common.Hash, error)
+        + TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+        + GetTransactionByHash(h common.Hash) (*types.Transaction, bool, error)
+        + UnsafeNonce() (*big.Int, error)
+        + LockNonce() 
+        + UnlockNonce() 
+        + UnsafeIncreaseNonce() error
+        + From() common.Address
+        + LatestBlockNumber() (*big.Int, error)
+        + LatestBlock() (*types.Block, error)
+        + SuggestGasPrice( context.Context) (*big.Int, error)
+
+    }
+    interface CommonTransaction  {
+        + Hash() common.Hash
+        + RawWithSignature(signer keypair.Signer, domainID *big.Int) ([]byte, error)
+
+    }
+    interface ContractCaller  {
+        + CallContract(ctx context.Context, callArgs <font color=blue>map</font>[string]<font color=blue>interface</font>{}, blockNumber *big.Int) ([]byte, error)
+
+    }
+    interface ContractCallerDispatcher  {
+    }
+    interface ContractChecker  {
+        + CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error)
+
+    }
+    interface GasPricer  {
+        + GasPrice(priority *uint8) ([]*big.Int, error)
+
+    }
+    class TX << (S,Aquamarine) >> {
+        - tx *types.Transaction
+
+        + RawWithSignature(signer keypair.Signer, chainID *big.Int) ([]byte, error)
+        + Hash() common.Hash
+
+    }
+    class TransactOptions << (S,Aquamarine) >> {
+        + GasLimit uint64
+        + GasPrice *big.Int
+        + Value *big.Int
+        + Nonce *big.Int
+        + ChainID *big.Int
+        + Priority uint8
+
+    }
+    interface Transactor  {
+        + Transact(to *common.Address, data []byte, opts TransactOptions) (*common.Hash, error)
+
+    }
+    class signAndSendTransactor << (S,Aquamarine) >> {
+        - gasPriceClient GasPricer
+        - client ClientDispatcher
+
+        + TxFabric TxFabric
+
+        + Transact(to *common.Address, data []byte, opts TransactOptions) (*common.Hash, error)
+
+    }
+    class transaction.TxFabric << (T, #FF7700) >>  {
+    }
+    class "<font color=blue>func</font>(uint64, *common.Address, *big.Int, uint64, []*big.Int, []byte) (CommonTransaction, error)" as fontcolorbluefuncfontuint64commonAddressbigIntuint64bigIntbyteCommonTransactionerror {
+        'This class was created so that we can correctly have an alias pointing to this name. Since it contains dots that can break namespaces
+    }
+}
+"transaction.ClientDispatcher" *-- "transaction.ContractCallerDispatcher"
+"transaction.ContractCaller" *-- "transaction.ContractCallerDispatcher"
+"transaction.ContractChecker" *-- "transaction.ContractCallerDispatcher"
+
+"transaction.CommonTransaction" <|-- "transaction.TX"
+"transaction.Transactor" <|-- "transaction.signAndSendTransactor"
+
+namespace util {
+    class ErrorResponse << (S,Aquamarine) >> {
+        + FailedField string
+        + Tag string
+        + Value <font color=blue>interface</font>{}
+
+    }
+    class ErrorResponses << (S,Aquamarine) >> {
+        + Error() string
+
+    }
+    class util.ErrorResponses << (T, #FF7700) >>  {
+    }
+}
+
+
+"__builtin__.string" #.. "message.EventSig"
+"transaction.fontcolorbluefuncfontuint64commonAddressbigIntuint64bigIntbyteCommonTransactionerror" #.. "transaction.TxFabric"
+"util.[]*ErrorResponse" #.. "util.ErrorResponses"
+@enduml
