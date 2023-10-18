@@ -26,17 +26,17 @@ jobs:
       - run: go mod tidy
       - run: go build -o bridge
 
-      - name: copy file via ssh password
+      - name: copy file via scp
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
+          port: ${{ secrets.SSH_PORT }}
           source: "./bridge"
           target: /home/${{ secrets.USERNAME }}/berith-swap/bridge/bridge
 
-      - name: start bridge
+      - name: start bridge via ssh
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
