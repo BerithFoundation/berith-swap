@@ -1,9 +1,6 @@
 name: Build Bridge
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     branches:
       - master
@@ -24,7 +21,7 @@ jobs:
           go-version: '1.21'
       - run: go version
       - run: go mod tidy
-      - run: go build -o bridge
+      - run: go build -o run-bridge
 
       - name: copy file via scp
         uses: appleboy/scp-action@v0.1.4
@@ -33,8 +30,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "./bridge"
-          target: /home/${{ secrets.USERNAME }}/berith-swap/bridge/bridge
+          source: "./run-bridge"
+          target: /home/${{ secrets.USERNAME }}/berith-swap/bridge
 
       - name: start bridge via ssh
         uses: appleboy/ssh-action@v1.0.0
