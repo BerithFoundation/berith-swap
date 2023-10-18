@@ -41,4 +41,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            /home/${{ secrets.USERNAME }}/stop_bridge.sh
             /home/${{ secrets.USERNAME }}/start_bridge.sh
