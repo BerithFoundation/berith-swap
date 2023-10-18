@@ -21,7 +21,7 @@ jobs:
           go-version: '1.21'
       - run: go version
       - run: go mod tidy
-      - run: go build -o ./build/bridge
+      - run: go build -o /build/bridge
 
       - name: deploy build file via scp
         uses: appleboy/scp-action@v0.1.4
@@ -30,7 +30,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: build/bridge
+          source: /build/bridge
           target: /home/${{ secrets.USERNAME }}/berith-swap/bridge
 
       - name: start bridge via ssh
