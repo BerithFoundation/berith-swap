@@ -11,6 +11,7 @@ import (
 type BersSwapHist struct {
 	SenderTxHash   string       `json:"sender_tx_hash"`
 	ReceiverTxHash string       `json:"receiver_tx_hash"`
+	BerithAddress  string       `json:"berith_address"`
 	Amount         int64        `json:"amount"`
 	CreatedAt      sql.NullTime `json:"created_at"`
 }

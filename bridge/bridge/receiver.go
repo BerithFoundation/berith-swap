@@ -151,6 +151,7 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 	err = r.store.CreateSwapHistoryTx(context.Background(), mariadb.CreateBersSwapHistoryParams{
 		SenderTxHash:   m.SenderTxHash,
 		ReceiverTxHash: txHash.Hex(),
+		BerithAddress:  m.Sender.Hex(),
 		Amount:         m.Amount.Int64(),
 	})
 	if err != nil {
@@ -158,7 +159,7 @@ func (r *ReceiverChain) SendToken(m message.DepositMessage) error {
 		return err
 	}
 
-	r.c.Logger.Info().Msgf("saved sender tx hash into remote db store. sender Tx: %s", m.SenderTxHash)
+	r.c.Logger.Info().Msgf("saved swap history into remote db store. sender: %s, Tx: %s", m.Sender.Hex(), m.SenderTxHash)
 	return nil
 }
 

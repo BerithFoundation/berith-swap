@@ -45,6 +45,7 @@ func TestStoreHistory(t *testing.T) {
 	ch <- message.DepositMessage{
 		BlockNumber:  big.NewInt(1).Uint64(),
 		Amount:       big.NewInt(1),
+		Sender:       receiver.CommonAddress(),
 		Receiver:     receiver.CommonAddress(),
 		SenderTxHash: senderTx,
 	}

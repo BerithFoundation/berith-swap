@@ -24,6 +24,7 @@ var cliFlags = []cli.Flag{
 	cmd.PasswordPathFlag,
 	cmd.BlockstorePathFlag,
 	cmd.LoadFlag,
+	cmd.DBSourceFlag,
 }
 
 func init() {

@@ -5,51 +5,46 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Env vars
-var (
-	HealthBlockTimeout = "BLOCK_TIMEOUT"
-)
-
 var (
 	ConfigFileFlag = &cli.StringFlag{
 		Name:  "config",
-		Usage: "JSON configuration file",
+		Usage: "config.json 파일의 경로를 지정합니다.",
 	}
 
 	VerbosityFlag = &cli.IntFlag{
 		Name:  "verbosity",
-		Usage: "Supports levels trace (-1) to disable (7)",
+		Usage: "디버깅 레벨을 조절합니다 Trace (-1) -> Disable (7)",
 		Value: int(zerolog.InfoLevel),
 	}
 
 	KeystorePathFlag = &cli.StringFlag{
 		Name:  "keystore",
-		Usage: "Path to keystore directory",
+		Usage: "키파일들이 위치한 경로를 지정합니다.",
 		Value: "./keys",
 	}
 
 	BlockstorePathFlag = &cli.StringFlag{
 		Name:  "blockstore",
-		Usage: "Specify path for blockstore",
+		Usage: "blockstore 경로를 지정합니다.",
 		Value: "./blockstore",
 	}
 
 	LoadFlag = &cli.BoolFlag{
 		Name:  "load",
-		Usage: "Disables loading from blockstore at start. Opts will still be used if specified.",
+		Usage: "만약 true라면, blockstore에서 마지막으로 Deposit된 블록 번호를 로드하여 해당 블록부터 Fetching을 실행합니다.",
 		Value: true,
 	}
 
 	PasswordPathFlag = &cli.StringFlag{
 		Name:     "password",
 		Required: true,
-		Usage:    "Path to the password file. Passwords in the file must be sorted in order of config chain index.",
+		Usage:    "키파일에 해당하는 비밀번호가 저장된 파일의 경로를 지정합니다. Sender는 첫줄, Receiver는 두번째 줄에 기입합니다.",
 		Value:    "./password",
 	}
 
 	DBSourceFlag = &cli.StringFlag{
 		Name:  "dbsource",
-		Usage: "remote db connection source. ex) user:password@tcp(url)/table",
+		Usage: "원격 DB Table의 접속정보를 지정합니다. ex) user:password@tcp(url)/table",
 		Value: "",
 	}
 )

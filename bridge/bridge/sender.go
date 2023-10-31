@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 var (
@@ -176,9 +177,15 @@ func (s *SenderChain) getDepositEventsForBlock(latestBlock *big.Int) ([]message.
 		if err != nil {
 			return nil, fmt.Errorf("error cannot get transaction by hash. hash:%s, err:%w", log.TxHash, err)
 		}
+
+		sender, err := types.Sender(types.LatestSignerForChainID(s.c.EvmClient.ChainId()), tx)
+		if err != nil {
+			return nil, fmt.Errorf("error cannot get sender by transaction. hash:%s, err:%w", tx.Hash(), err)
+		}
+
 		if !pending {
 			receiver := common.BytesToAddress(log.Topics[1].Bytes())
-			msg := message.NewDepositMessage(log.BlockNumber, receiver, tx.Value(), log.TxHash.Hex())
+			msg := message.NewDepositMessage(log.BlockNumber, sender, receiver, tx.Value(), log.TxHash.Hex())
 			msgs = append(msgs, msg)
 		}
 	}

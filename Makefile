@@ -1,15 +1,16 @@
 build:
 	go build -o run_test/berith-swap
 
-runtest:
-	cd run_test && ./berith-swap
-
 solc:
 	cd contract && npx hardhat compile
 
-deploy:
+deploy-test:
 	cd contract && npx hardhat run scripts/bers-token.js --network klaytnTestnet
 	cd contract && npx hardhat run scripts/berith-swap.js --network berithTestnet
+
+deploy:
+	cd contract && npx hardhat run scripts/bers-token.js --network klaytnMainnet
+	cd contract && npx hardhat run scripts/berith-swap.js --network berithMainnet
 
 ctest:
 	cd contract && npx hardhat test
@@ -20,4 +21,4 @@ test:
 sqlc:
 	sqlc generate
 
-.PHONY: build runtest solc deploy ctest test sqlc
+.PHONY: build runtest solc deploy-test deploy ctest test sqlc

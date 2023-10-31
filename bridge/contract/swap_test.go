@@ -4,6 +4,7 @@ import (
 	"berith-swap/bridge/keypair"
 	"berith-swap/bridge/transaction"
 	"context"
+	"encoding/hex"
 	"math/big"
 	"sync"
 	"testing"
@@ -123,4 +124,13 @@ func TestSwapWithdraw(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestGetPrivateKey(t *testing.T) {
+	cfg := initTestconfig(t)
+	kp, err := keypair.GenerateKeyPair(cfg.ChainConfig[SenderIdx].Owner, cfg.KeystorePath, cfg.ChainConfig[SenderIdx].Password)
+	require.NoError(t, err)
+
+	t.Log(kp.CommonAddress())
+	t.Log(hex.EncodeToString(kp.Encode()))
 }
