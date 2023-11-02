@@ -56,8 +56,8 @@ func NewSenderChain(ch chan<- message.DepositMessage, cfg *config.Config, idx in
 	if cfg.IsLoaded {
 		chain.Logger.Info().Msgf("try load latest block from block store isLoaded:%v", cfg.IsLoaded)
 		startBlock, err = bs.TryLoadLatestBlock()
-		if err != nil {
-			chain.Logger.Panic().Err(err).Msgf("cannot load latest block from block store.")
+		if err != nil || startBlock == nil {
+			chain.Logger.Panic().Err(err).Msgf("cannot load latest block from block store. isBlockNumberNil: %v", startBlock == nil)
 		}
 		chain.Logger.Info().Msgf("loaded latest block number form blockstore. path:%s, number:%d", bs.FullPath(), startBlock.Uint64())
 	}

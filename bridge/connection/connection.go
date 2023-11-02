@@ -79,6 +79,13 @@ func (c *EvmClient) UnsafeNonce() (*big.Int, error) {
 			}
 			c.nonce = big.NewInt(0).SetUint64(nonce)
 			return c.nonce, nil
+		} else if n, err := c.PendingNonceAt(context.Background(), c.signer.CommonAddress()); c.nonce.Uint64() < n { // bridge 실행 도중 다른 경로를 통해 컨트랙트를 직접 호출하여 nonce가 변경되었을 때
+			if err != nil {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			c.logger.Debug().Msgf("nonce too low. update from %d to %d", c.nonce.Uint64(), n)
+			c.nonce = big.NewInt(0).SetUint64(n)
 		}
 		return c.nonce, nil
 	}
