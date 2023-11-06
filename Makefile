@@ -5,11 +5,11 @@ solc:
 	cd contract && npx hardhat compile
 
 deploy-test:
-	cd contract && npx hardhat run scripts/bers-token.js --network klaytnTestnet
+	cd contract && npx hardhat run scripts/KBToken.js --network klaytnTestnet
 	cd contract && npx hardhat run scripts/berith-swap.js --network berithTestnet
 
 deploy:
-	cd contract && npx hardhat run scripts/bers-token.js --network klaytnMainnet
+	cd contract && npx hardhat run scripts/KBToken.js --network klaytnMainnet
 	cd contract && npx hardhat run scripts/berith-swap.js --network berithMainnet
 
 ctest:

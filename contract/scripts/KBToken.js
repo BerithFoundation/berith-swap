@@ -8,13 +8,13 @@ const hre = require("hardhat");
 
 async function main() {
   hre.ethers;
-  const totalSupply = BigInt(10000000000 * 1e18).toString();
+  const totalSupply = BigInt(10000000000 * 10e18).toString();
 
-  const token = await hre.ethers.deployContract("BersToken", [totalSupply]);
+  const token = await hre.ethers.deployContract("KBToken", [totalSupply]);
 
   await token.waitForDeployment();
 
-  console.log(`bers token  deployed to ${token.target}`);
+  console.log(`KB Token  deployed to ${token.target}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
