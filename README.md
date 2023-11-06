@@ -23,7 +23,7 @@ config.json
     {
       "idx": 1,
       "name": "klaytn",
-      "endpoint": "https://api.baobab.klaytn.net:8651",
+      "endpoint": "https://public-en-cypress.klaytn.net",
       "owner": "ERC20 Owner Address",
       "erc20Address": "ERC20 Contract Address",
       "gasLimit": "9000000",
